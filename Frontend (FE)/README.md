@@ -97,7 +97,7 @@ This frontend application serves as the user interface for the IST Authenticatio
 ### Development Setup
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/IST-auth-system.git
+git clone https://github.com/manziosee/IST-auth-system.git
 cd IST-auth-system/Frontend\ \(FE\)
 
 # Install dependencies
