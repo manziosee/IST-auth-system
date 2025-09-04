@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Mail, Phone, Calendar, MapPin, Edit3, Save, X } from 'lucide-react';
+import { Mail, Calendar, Edit3, Save, X, Shield, Key } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -8,16 +8,29 @@ import { Input } from '../components/ui/Input';
 export function ProfilePage() {
   const { state } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Mock user data for development when no user is authenticated
+  const mockUser = {
+    firstName: 'John',
+    lastName: 'Doe',
+    email: 'admin@school.edu',
+    role: 'admin' as const,
+    emailVerified: true,
+    createdAt: new Date().toISOString()
+  };
+  
+  const currentUser = state.user || mockUser;
+  
   const [profileData, setProfileData] = useState({
-    firstName: state.user?.firstName || '',
-    lastName: state.user?.lastName || '',
-    email: state.user?.email || '',
+    firstName: currentUser.firstName || 'John',
+    lastName: currentUser.lastName || 'Doe',
+    email: currentUser.email || 'admin@school.edu',
     phone: '+1 (555) 123-4567',
     address: '123 University Ave, Education City, EC 12345',
     bio: 'Passionate about education and continuous learning. Dedicated to academic excellence and student success.',
-    department: state.user?.role === 'teacher' ? 'Mathematics' : '',
-    studentId: state.user?.role === 'student' ? 'STU-2024-001' : '',
-    employeeId: state.user?.role !== 'student' ? 'EMP-2024-001' : '',
+    department: currentUser.role === 'teacher' ? 'Mathematics' : '',
+    studentId: currentUser.role === 'student' ? 'STU-2024-001' : '',
+    employeeId: currentUser.role !== 'student' ? 'EMP-2024-001' : '',
   });
 
   const handleSave = () => {
@@ -29,15 +42,15 @@ export function ProfilePage() {
   const handleCancel = () => {
     setIsEditing(false);
     setProfileData({
-      firstName: state.user?.firstName || '',
-      lastName: state.user?.lastName || '',
-      email: state.user?.email || '',
+      firstName: currentUser.firstName || 'John',
+      lastName: currentUser.lastName || 'Doe',
+      email: currentUser.email || 'admin@school.edu',
       phone: '+1 (555) 123-4567',
       address: '123 University Ave, Education City, EC 12345',
       bio: 'Passionate about education and continuous learning. Dedicated to academic excellence and student success.',
-      department: state.user?.role === 'teacher' ? 'Mathematics' : '',
-      studentId: state.user?.role === 'student' ? 'STU-2024-001' : '',
-      employeeId: state.user?.role !== 'student' ? 'EMP-2024-001' : '',
+      department: currentUser.role === 'teacher' ? 'Mathematics' : '',
+      studentId: currentUser.role === 'student' ? 'STU-2024-001' : '',
+      employeeId: currentUser.role !== 'student' ? 'EMP-2024-001' : '',
     });
   };
 
@@ -81,23 +94,23 @@ export function ProfilePage() {
           <div className="text-center">
             <div className="w-24 h-24 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-white text-2xl font-bold">
-                {state.user?.firstName?.charAt(0)}{state.user?.lastName?.charAt(0)}
+                {currentUser.firstName?.charAt(0)}{currentUser.lastName?.charAt(0)}
               </span>
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">
-              {state.user?.firstName} {state.user?.lastName}
+              {currentUser.firstName} {currentUser.lastName}
             </h2>
-            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(state.user?.role || '')}`}>
-              {state.user?.role?.toUpperCase()}
+            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(currentUser.role || '')}`}>
+              {currentUser.role?.toUpperCase()}
             </span>
             <div className="mt-4 space-y-2 text-sm text-gray-600">
               <div className="flex items-center justify-center space-x-2">
                 <Mail className="h-4 w-4" />
-                <span>{state.user?.email}</span>
+                <span>{currentUser.email}</span>
               </div>
               <div className="flex items-center justify-center space-x-2">
                 <Calendar className="h-4 w-4" />
-                <span>Joined {new Date(state.user?.createdAt || '').toLocaleDateString()}</span>
+                <span>Joined {new Date(currentUser.createdAt || '').toLocaleDateString()}</span>
               </div>
             </div>
           </div>
@@ -138,7 +151,7 @@ export function ProfilePage() {
                   disabled={!isEditing}
                 />
               </div>
-              {state.user?.role === 'teacher' && (
+              {currentUser.role === 'teacher' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
                   <Input
@@ -148,7 +161,7 @@ export function ProfilePage() {
                   />
                 </div>
               )}
-              {state.user?.role === 'student' && (
+              {currentUser.role === 'student' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Student ID</label>
                   <Input
@@ -157,7 +170,7 @@ export function ProfilePage() {
                   />
                 </div>
               )}
-              {state.user?.role !== 'student' && (
+              {currentUser.role !== 'student' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Employee ID</label>
                   <Input

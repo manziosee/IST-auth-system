@@ -1,14 +1,13 @@
-import React from 'react';
-import { BookOpen, Calendar, Clock, Award, TrendingUp, FileText, CheckCircle } from 'lucide-react';
+import { BookOpen, Clock, Award, TrendingUp, FileText, CheckCircle, Target, Brain } from 'lucide-react';
 import { StatsCard } from '../ui/StatsCard';
 import { Card } from '../ui/Card';
 
 export function StudentDashboard() {
   const stats = [
-    { title: 'Enrolled Courses', value: '5', change: 'This semester', icon: BookOpen, color: 'blue' },
-    { title: 'Assignments Due', value: '3', change: 'This week', icon: FileText, color: 'orange' },
-    { title: 'Current GPA', value: '3.7', change: '+0.2 from last semester', icon: Award, color: 'green' },
-    { title: 'Completion Rate', value: '92%', change: '+5% this month', icon: TrendingUp, color: 'purple' },
+    { title: 'Enrolled Courses', value: '5', change: 'This semester', icon: BookOpen, color: 'blue' as const },
+    { title: 'Assignments Due', value: '3', change: 'This week', icon: FileText, color: 'orange' as const },
+    { title: 'Current GPA', value: '3.7', change: '+0.2 from last semester', icon: Award, color: 'green' as const },
+    { title: 'Completion Rate', value: '92%', change: '+5% this month', icon: TrendingUp, color: 'purple' as const },
   ];
 
   const upcomingClasses = [
@@ -46,13 +45,17 @@ export function StudentDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Student Dashboard</h1>
-          <p className="text-gray-600">Track your academic progress and stay organized</p>
+          <h1 className="text-2xl font-bold text-gray-900">Learning Hub</h1>
+          <p className="text-gray-600">Track your academic journey and achieve your goals</p>
         </div>
         <div className="flex space-x-3">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
-            <Calendar className="h-4 w-4" />
-            <span>View Schedule</span>
+          <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+            <Target className="h-4 w-4" />
+            <span>Set Goals</span>
+          </button>
+          <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+            <Brain className="h-4 w-4" />
+            <span>Study Plan</span>
           </button>
         </div>
       </div>

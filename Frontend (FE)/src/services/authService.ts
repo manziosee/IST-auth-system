@@ -1,9 +1,11 @@
-import { User, LoginResponse, TokenRefreshResponse } from '../types/auth';
+import { User, LoginResponse, TokenRefreshResponse, EmailVerificationResponse } from '../types/auth';
 
 class AuthService {
   private readonly baseURL = 'http://localhost:8080/api/auth'; // IdP backend URL
+  private readonly jwksURL = 'http://localhost:8080/.well-known/jwks.json';
   private readonly clientId = 'school-management-app';
   private readonly clientSecret = 'demo-client-secret';
+  private publicKey: string | null = null;
 
   async login(email: string, password: string): Promise<LoginResponse> {
     // Simulate API call to IdP backend
@@ -25,7 +27,7 @@ class AuthService {
     return this.createAuthResponse(user.email, user.role);
   }
 
-  async register(email: string, password: string, role: 'admin' | 'teacher' | 'student' = 'student'): Promise<LoginResponse> {
+  async register(email: string, password: string, role: 'admin' | 'teacher' | 'student' = 'student'): Promise<{ requiresVerification: boolean; message: string }> {
     // Simulate API call to IdP backend
     await this.delay(1200);
     
@@ -33,7 +35,11 @@ class AuthService {
       throw new Error('Email already exists');
     }
 
-    return this.createAuthResponse(email, role);
+    // In real implementation, this would create user and send verification email
+    return {
+      requiresVerification: true,
+      message: 'Registration successful. Please check your email for verification.'
+    };
   }
 
   async refreshToken(refreshToken: string): Promise<TokenRefreshResponse> {
@@ -86,6 +92,98 @@ class AuthService {
   clearTokens(): void {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+  }
+
+  async sendVerificationEmail(email: string): Promise<void> {
+    await this.delay(800);
+    console.log(`Verification email sent to ${email}`);
+  }
+
+  async verifyEmail(email: string, code: string): Promise<LoginResponse> {
+    await this.delay(1000);
+    
+    if (code !== '123456') {
+      throw new Error('Invalid verification code');
+    }
+
+    // Create user account after successful verification
+    const role = email.includes('admin') ? 'admin' as const : 
+                 email.includes('teacher') ? 'teacher' as const : 'student' as const;
+    
+    return this.createAuthResponse(email, role);
+  }
+
+  async fetchPublicKey(): Promise<string> {
+    if (this.publicKey) {
+      return this.publicKey;
+    }
+
+    try {
+      // In real implementation, fetch from JWKS endpoint
+      await this.delay(500);
+      
+      // Mock public key for demo
+      this.publicKey = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4f5wg5l2hKsTeNem/V41
+fGnJm6gOdrj8ym3rFkEjWT2btf+FxKlaAWYxgxYaLPFyHPxCL4HHQOFwlOWN4Hxp
+T3S+HgOQhqMa9+Ld4+5g5l2hKsTeNem/V41fGnJm6gOdrj8ym3rFkEjWT2btf+Fx
+KlaAWYxgxYaLPFyHPxCL4HHQOFwlOWN4HxpT3S+HgOQhqMa9+Ld4+5g5l2hKsTe
+Nem/V41fGnJm6gOdrj8ym3rFkEjWT2btf+FxKlaAWYxgxYaLPFyHPxCL4HHQOFW
+lOWN4HxpT3S+HgOQhqMa9+Ld4+5g
+-----END PUBLIC KEY-----`;
+      
+      return this.publicKey;
+    } catch (error) {
+      throw new Error('Failed to fetch public key');
+    }
+  }
+
+  async validateTokenSignature(token: string): Promise<boolean> {
+    try {
+      // In real implementation, verify JWT signature using public key
+      const publicKey = await this.fetchPublicKey();
+      
+      // Mock validation - in production use a JWT library
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        return false;
+      }
+
+      // Simulate signature verification
+      await this.delay(200);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async initiateOAuthLogin(provider: 'linkedin' | 'google' | 'github'): Promise<string> {
+    const state = Math.random().toString(36).substring(2, 15);
+    const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
+    
+    localStorage.setItem('oauth_state', state);
+    
+    // Return OAuth URL that would redirect to IdP
+    return `${this.baseURL}/oauth2/authorization/${provider}?client_id=${this.clientId}&redirect_uri=${redirectUri}&state=${state}`;
+  }
+
+  async handleOAuthCallback(provider: string, code: string, state: string): Promise<LoginResponse> {
+    const storedState = localStorage.getItem('oauth_state');
+    
+    if (state !== storedState) {
+      throw new Error('Invalid OAuth state');
+    }
+
+    localStorage.removeItem('oauth_state');
+
+    // Simulate OAuth token exchange
+    await this.delay(1500);
+    
+    // Mock user data from OAuth provider
+    const email = `user@${provider}.com`;
+    const role = 'student' as const;
+    
+    return this.createAuthResponse(email, role);
   }
 
   private createAuthResponse(email: string, role: 'admin' | 'teacher' | 'student'): LoginResponse {
