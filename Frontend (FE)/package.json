@@ -1,13 +1,28 @@
 {
-  "name": "vite-react-typescript-starter",
+  "name": "ist-auth-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "IST Authentication System - Frontend Identity Provider for Educational Institutions",
+  "author": "Manzi Niyongira Osee <osee@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/IST-auth-system.git"
+  },
+  "keywords": ["authentication", "identity-provider", "education", "react", "typescript", "oauth", "jwt"],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:widget": "vite build --config vite.widget.config.ts",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "lint:fix": "eslint . --fix",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "docker:build": "docker build -t ist-auth-frontend .",
+    "docker:run": "docker run -p 3000:80 ist-auth-frontend",
+    "docker:compose": "docker-compose up -d"
   },
   "dependencies": {
     "lucide-react": "^0.344.0",

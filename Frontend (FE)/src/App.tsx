@@ -1,4 +1,4 @@
-import React from 'react';
+import { } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { Layout } from './components/layout/Layout';
@@ -21,23 +21,56 @@ function App() {
         <div className="min-h-screen bg-gray-50">
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
+            
+            {/* Direct access routes for development - wrapped in Layout */}
+            <Route path="/dashboard" element={
+              <Layout>
+                <DashboardPage />
+              </Layout>
+            } />
+            <Route path="/courses" element={
+              <Layout>
+                <CoursesPage />
+              </Layout>
+            } />
+            <Route path="/students" element={
+              <Layout>
+                <StudentsPage />
+              </Layout>
+            } />
+            <Route path="/teachers" element={
+              <Layout>
+                <TeachersPage />
+              </Layout>
+            } />
+            <Route path="/analytics" element={
+              <Layout>
+                <AnalyticsPage />
+              </Layout>
+            } />
+            <Route path="/settings" element={
+              <Layout>
+                <SettingsPage />
+              </Layout>
+            } />
+            <Route path="/profile" element={
+              <Layout>
+                <ProfilePage />
+              </Layout>
+            } />
+            <Route path="/integration" element={
+              <Layout>
+                <IntegrationPage />
+              </Layout>
+            } />
+            
+            {/* Protected root route */}
             <Route path="/" element={
               <ProtectedRoute>
-                <Layout>
-                  <Routes>
-                    <Route index element={<Navigate to="/dashboard" replace />} />
-                    <Route path="dashboard" element={<DashboardPage />} />
-                    <Route path="courses" element={<CoursesPage />} />
-                    <Route path="students" element={<StudentsPage />} />
-                    <Route path="teachers" element={<TeachersPage />} />
-                    <Route path="analytics" element={<AnalyticsPage />} />
-                    <Route path="settings" element={<SettingsPage />} />
-                    <Route path="profile" element={<ProfilePage />} />
-                    <Route path="integration" element={<IntegrationPage />} />
-                  </Routes>
-                </Layout>
+                <Navigate to="/dashboard" replace />
               </ProtectedRoute>
             } />
+            
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
           <Toaster />

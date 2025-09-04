@@ -1,14 +1,13 @@
-import React from 'react';
-import { BookOpen, Users, Calendar, FileText, Clock, Award, MessageCircle } from 'lucide-react';
+import { BookOpen, Users, FileText, Clock, Award, MessageCircle, GraduationCap, CheckCircle } from 'lucide-react';
 import { StatsCard } from '../ui/StatsCard';
 import { Card } from '../ui/Card';
 
 export function TeacherDashboard() {
   const stats = [
-    { title: 'My Courses', value: '6', change: '+2 new', icon: BookOpen, color: 'blue' },
-    { title: 'Total Students', value: '142', change: '+8 this week', icon: Users, color: 'green' },
-    { title: 'Pending Assignments', value: '23', change: 'Due this week', icon: FileText, color: 'orange' },
-    { title: 'Average Grade', value: '87%', change: '+2% improvement', icon: Award, color: 'purple' },
+    { title: 'My Courses', value: '6', change: '+2 new', icon: BookOpen, color: 'blue' as const },
+    { title: 'Total Students', value: '142', change: '+8 this week', icon: Users, color: 'green' as const },
+    { title: 'Pending Grades', value: '23', change: 'Need grading', icon: FileText, color: 'orange' as const },
+    { title: 'Class Average', value: '87%', change: '+2% improvement', icon: Award, color: 'purple' as const },
   ];
 
   const upcomingClasses = [
@@ -28,13 +27,17 @@ export function TeacherDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Teacher Dashboard</h1>
-          <p className="text-gray-600">Manage your courses and track student progress</p>
+          <h1 className="text-2xl font-bold text-gray-900">Teaching Center</h1>
+          <p className="text-gray-600">Manage courses, grade assignments, and track student progress</p>
         </div>
         <div className="flex space-x-3">
+          <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+            <GraduationCap className="h-4 w-4" />
+            <span>Create Assignment</span>
+          </button>
           <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
-            <Calendar className="h-4 w-4" />
-            <span>Schedule Class</span>
+            <MessageCircle className="h-4 w-4" />
+            <span>Message Students</span>
           </button>
         </div>
       </div>
@@ -68,14 +71,21 @@ export function TeacherDashboard() {
           </div>
         </Card>
 
-        <Card title="Recent Submissions" className="p-6">
+        <Card title="Grading Queue" className="p-6">
           <div className="space-y-4">
             {recentSubmissions.map((submission, index) => (
               <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex-1">
-                  <h3 className="font-medium text-gray-900">{submission.student}</h3>
-                  <p className="text-sm text-gray-600">{submission.assignment}</p>
-                  <p className="text-xs text-gray-500 mt-1">{submission.submitted}</p>
+                <div className="flex items-center space-x-3 flex-1">
+                  {submission.grade ? (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <Clock className="h-5 w-5 text-orange-600" />
+                  )}
+                  <div>
+                    <h3 className="font-medium text-gray-900">{submission.student}</h3>
+                    <p className="text-sm text-gray-600">{submission.assignment}</p>
+                    <p className="text-xs text-gray-500 mt-1">{submission.submitted}</p>
+                  </div>
                 </div>
                 <div className="text-right">
                   {submission.grade ? (
@@ -83,8 +93,8 @@ export function TeacherDashboard() {
                       {submission.grade}
                     </span>
                   ) : (
-                    <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                      Grade
+                    <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors">
+                      Grade Now
                     </button>
                   )}
                 </div>

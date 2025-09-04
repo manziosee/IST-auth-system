@@ -27,3 +27,8 @@ export interface TokenRefreshResponse {
   accessToken: string;
   refreshToken: string;
 }
+
+export interface EmailVerificationResponse {
+  message: string;
+  success: boolean;
+}
