@@ -225,9 +225,12 @@ docker-compose up -d postgres redis
 ### Authentication Security
 - Password hashing with BCrypt (strength 12)
 - JWT tokens with RSA signature verification
+- **Key Persistence**: RSA keys persisted in database to prevent token invalidation
 - Refresh token rotation on use
 - Account lockout protection
 - Email verification requirement
+- **Log Injection Protection**: User input sanitized in logs
+- **Error Information Sanitization**: Generic error messages prevent data leakage
 
 ### API Security
 - Role-based endpoint protection
