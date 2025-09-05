@@ -129,6 +129,10 @@ public class UserService {
     
     public void updateLastLogin(User user) {
         user.setLastLogin(LocalDateTime.now());
+        userRepository.save(user);
+    }
+    
+    public void resetFailedLoginAttempts(User user) {
         user.resetFailedLoginAttempts();
         userRepository.save(user);
     }

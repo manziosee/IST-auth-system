@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,11 +22,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-/**
- * Authentication Controller for handling login, registration, and token operations
- * Developer: Manzi Niyongira Osee
- * Year: 2025
- */
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
@@ -38,17 +34,9 @@ public class AuthController {
     private AuthenticationService authenticationService;
     
     @Operation(summary = "User Login", description = "Authenticate user with email/username and password")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Login successful",
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = "{\"accessToken\":\"eyJ0eXAi...\",\"refreshToken\":\"eyJ0eXAi...\",\"user\":{\"id\":1,\"username\":\"john_doe\",\"email\":\"john@example.com\",\"role\":\"STUDENT\"}}"))),
-        @ApiResponse(responseCode = "400", description = "Invalid credentials or account not verified",
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = "{\"error\":\"Invalid credentials\"}")))
-    })
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest request) {
-        logger.info("Login attempt for user: {}", request.emailOrUsername);
+        logger.info("Login attempt for user: {}", sanitizeForLog(request.emailOrUsername));
         
         try {
             Map<String, Object> response = authenticationService.authenticate(
@@ -59,24 +47,16 @@ public class AuthController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("Login failed for user: {}", request.emailOrUsername, e);
+            logger.error("Login failed for user: {}", sanitizeForLog(request.emailOrUsername), e);
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of("error", "Authentication failed"));
         }
     }
     
     @Operation(summary = "User Registration", description = "Register a new user account")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Registration successful",
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = "{\"message\":\"User registered successfully\",\"userId\":1,\"emailSent\":true}"))),
-        @ApiResponse(responseCode = "400", description = "Registration failed - user already exists or validation error",
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = "{\"error\":\"User already exists with this email\"}")))
-    })
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequest request) {
-        logger.info("Registration attempt for user: {}", request.email);
+        logger.info("Registration attempt for user: {}", sanitizeForLog(request.email));
         
         try {
             Map<String, Object> response = authenticationService.register(
@@ -90,21 +70,13 @@ public class AuthController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            logger.error("Registration failed for user: {}", request.email, e);
+            logger.error("Registration failed for user: {}", sanitizeForLog(request.email), e);
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of("error", "Registration failed"));
         }
     }
     
     @Operation(summary = "Refresh Access Token", description = "Generate new access token using refresh token")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Token refreshed successfully",
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = "{\"accessToken\":\"eyJ0eXAi...\",\"refreshToken\":\"eyJ0eXAi...\",\"expiresIn\":900}"))),
-        @ApiResponse(responseCode = "400", description = "Invalid or expired refresh token",
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = "{\"error\":\"Invalid refresh token\"}")))
-    })
     @PostMapping("/refresh")
     public ResponseEntity<Map<String, Object>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         logger.debug("Token refresh attempt");
@@ -116,19 +88,11 @@ public class AuthController {
         } catch (Exception e) {
             logger.error("Token refresh failed", e);
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of("error", "Token refresh failed"));
         }
     }
     
     @Operation(summary = "User Logout", description = "Logout user and invalidate refresh token")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Logout successful",
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = "{\"message\":\"Logged out successfully\"}"))),
-        @ApiResponse(responseCode = "400", description = "Logout failed",
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = "{\"error\":\"Invalid refresh token\"}")))
-    })
     @PostMapping("/logout")
     public ResponseEntity<Map<String, Object>> logout(@Valid @RequestBody RefreshTokenRequest request) {
         logger.info("Logout attempt");
@@ -140,7 +104,7 @@ public class AuthController {
         } catch (Exception e) {
             logger.error("Logout failed", e);
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of("error", "Logout failed"));
         }
     }
     
@@ -155,19 +119,11 @@ public class AuthController {
         } catch (Exception e) {
             logger.error("Logout all sessions failed for user ID: {}", request.userId, e);
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of("error", "Logout failed"));
         }
     }
     
     @Operation(summary = "Verify Email Address", description = "Verify user email using verification token")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Email verified successfully",
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = "{\"message\":\"Email verified successfully\",\"verified\":true}"))),
-        @ApiResponse(responseCode = "400", description = "Invalid or expired verification token",
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = "{\"error\":\"Invalid or expired verification token\",\"verified\":false}")))
-    })
     @PostMapping("/verify-email")
     public ResponseEntity<Map<String, Object>> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
         logger.info("Email verification attempt");
@@ -192,7 +148,7 @@ public class AuthController {
             logger.error("Email verification failed", e);
             return ResponseEntity.badRequest()
                     .body(Map.of(
-                        "error", e.getMessage(),
+                        "error", "Email verification failed",
                         "verified", false
                     ));
         }
@@ -200,7 +156,7 @@ public class AuthController {
     
     @PostMapping("/resend-verification")
     public ResponseEntity<Map<String, Object>> resendVerificationEmail(@Valid @RequestBody ResendVerificationRequest request) {
-        logger.info("Resend verification email attempt for: {}", request.email);
+        logger.info("Resend verification email attempt for: {}", sanitizeForLog(request.email));
         
         try {
             authenticationService.resendVerificationEmail(request.email);
@@ -210,9 +166,9 @@ public class AuthController {
             ));
             
         } catch (Exception e) {
-            logger.error("Resend verification email failed for: {}", request.email, e);
+            logger.error("Resend verification email failed for: {}", sanitizeForLog(request.email), e);
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of("error", "Failed to send verification email"));
         }
     }
     
@@ -235,7 +191,7 @@ public class AuthController {
             return ResponseEntity.badRequest()
                     .body(Map.of(
                         "valid", false,
-                        "error", e.getMessage()
+                        "error", "Token validation failed"
                     ));
         }
     }
@@ -277,7 +233,7 @@ public class AuthController {
     }
     
     public static class LogoutAllRequest {
-        @NotBlank(message = "User ID is required")
+        @NotNull(message = "User ID is required")
         public Long userId;
     }
     
@@ -295,5 +251,10 @@ public class AuthController {
     public static class ValidateTokenRequest {
         @NotBlank(message = "Token is required")
         public String token;
+    }
+    
+    private String sanitizeForLog(String input) {
+        if (input == null) return "null";
+        return input.replaceAll("[\\r\\n\\t]", "_").replaceAll("[^\\w@.+_-]", "_");
     }
 }

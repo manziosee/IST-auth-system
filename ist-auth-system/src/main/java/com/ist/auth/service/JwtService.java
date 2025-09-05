@@ -1,6 +1,8 @@
 package com.ist.auth.service;
 
+import com.ist.auth.entity.JwtKeyPair;
 import com.ist.auth.entity.User;
+import com.ist.auth.repository.JwtKeyPairRepository;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
@@ -11,17 +13,23 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -43,49 +51,84 @@ public class JwtService {
     @Value("${app.jwt.key-size:2048}")
     private int keySize;
     
+    @Autowired
+    private JwtKeyPairRepository keyPairRepository;
+    
     private RSAPrivateKey privateKey;
     private RSAPublicKey publicKey;
     private String keyId;
     private JWKSet jwkSet;
+    private RSASSASigner signer;
+    private RSASSAVerifier verifier;
     
     @PostConstruct
     public void init() {
-        generateKeyPair();
-        createJWKSet();
-        logger.info("JWT Service initialized with RSA key pair");
-    }
-    
-    private void generateKeyPair() {
         try {
-            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-            keyPairGenerator.initialize(keySize);
-            KeyPair keyPair = keyPairGenerator.generateKeyPair();
-            
-            this.privateKey = (RSAPrivateKey) keyPair.getPrivate();
-            this.publicKey = (RSAPublicKey) keyPair.getPublic();
-            this.keyId = UUID.randomUUID().toString();
-            
-            logger.info("RSA key pair generated successfully with key ID: {}", keyId);
+            loadOrGenerateKeyPair();
+            createJWKSet();
+            createSignerAndVerifier();
+            logger.info("JWT Service initialized with RSA key pair: {}", keyId);
         } catch (Exception e) {
-            logger.error("Failed to generate RSA key pair", e);
-            throw new RuntimeException("Failed to generate RSA key pair", e);
+            logger.error("Failed to initialize JWT Service", e);
+            throw new RuntimeException("JWT Service initialization failed", e);
         }
     }
     
-    private void createJWKSet() {
-        try {
-            JWK jwk = new RSAKey.Builder(publicKey)
-                    .keyID(keyId)
-                    .algorithm(JWSAlgorithm.RS256)
-                    .keyUse(com.nimbusds.jose.jwk.KeyUse.SIGNATURE)
-                    .build();
-            
-            this.jwkSet = new JWKSet(jwk);
-            logger.info("JWK Set created successfully");
-        } catch (Exception e) {
-            logger.error("Failed to create JWK Set", e);
-            throw new RuntimeException("Failed to create JWK Set", e);
+    private void loadOrGenerateKeyPair() throws Exception {
+        Optional<JwtKeyPair> existingKeyPair = keyPairRepository.findByActiveTrue();
+        
+        if (existingKeyPair.isPresent()) {
+            loadExistingKeyPair(existingKeyPair.get());
+            logger.info("Loaded existing RSA key pair: {}", keyId);
+        } else {
+            generateAndSaveKeyPair();
+            logger.info("Generated new RSA key pair: {}", keyId);
         }
+    }
+    
+    private void loadExistingKeyPair(JwtKeyPair keyPairEntity) throws Exception {
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        
+        PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(keyPairEntity.getPrivateKey());
+        this.privateKey = (RSAPrivateKey) keyFactory.generatePrivate(privateKeySpec);
+        
+        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(keyPairEntity.getPublicKey());
+        this.publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
+        
+        this.keyId = keyPairEntity.getKeyId();
+    }
+    
+    private void generateAndSaveKeyPair() throws NoSuchAlgorithmException {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(keySize);
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        
+        this.privateKey = (RSAPrivateKey) keyPair.getPrivate();
+        this.publicKey = (RSAPublicKey) keyPair.getPublic();
+        this.keyId = UUID.randomUUID().toString();
+        
+        // Save to database
+        JwtKeyPair keyPairEntity = new JwtKeyPair(
+            keyId,
+            privateKey.getEncoded(),
+            publicKey.getEncoded()
+        );
+        keyPairRepository.save(keyPairEntity);
+    }
+    
+    private void createJWKSet() throws JOSEException {
+        JWK jwk = new RSAKey.Builder(publicKey)
+                .keyID(keyId)
+                .algorithm(JWSAlgorithm.RS256)
+                .keyUse(com.nimbusds.jose.jwk.KeyUse.SIGNATURE)
+                .build();
+        
+        this.jwkSet = new JWKSet(jwk);
+    }
+    
+    private void createSignerAndVerifier() throws JOSEException {
+        this.signer = new RSASSASigner(privateKey);
+        this.verifier = new RSASSAVerifier(publicKey);
     }
     
     public String generateAccessToken(User user) {
@@ -121,7 +164,7 @@ public class JwtService {
                     claimsSet
             );
             
-            signedJWT.sign(new RSASSASigner(privateKey));
+            signedJWT.sign(signer);
             
             logger.debug("Access token generated for user: {}", user.getEmail());
             return signedJWT.serialize();
@@ -157,7 +200,7 @@ public class JwtService {
                     claimsSet
             );
             
-            signedJWT.sign(new RSASSASigner(privateKey));
+            signedJWT.sign(signer);
             
             logger.debug("Refresh token generated for user: {}", user.getEmail());
             return signedJWT.serialize();
@@ -173,32 +216,31 @@ public class JwtService {
             SignedJWT signedJWT = SignedJWT.parse(token);
             
             // Verify signature
-            JWSVerifier verifier = new RSASSAVerifier(publicKey);
             if (!signedJWT.verify(verifier)) {
                 logger.warn("Token signature verification failed");
                 return false;
             }
             
-            // Check expiration
+            // Check expiration and not before with single date
             JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
+            Date now = new Date();
+            
             Date expiration = claims.getExpirationTime();
-            if (expiration == null || expiration.before(new Date())) {
+            if (expiration == null || expiration.before(now)) {
                 logger.warn("Token is expired");
                 return false;
             }
             
-            // Check not before
             Date notBefore = claims.getNotBeforeTime();
-            if (notBefore != null && notBefore.after(new Date())) {
+            if (notBefore != null && notBefore.after(now)) {
                 logger.warn("Token is not yet valid");
                 return false;
             }
             
-            logger.debug("Token validation successful");
             return true;
             
         } catch (Exception e) {
-            logger.warn("Token validation failed", e);
+            logger.warn("Token validation failed: {}", e.getMessage());
             return false;
         }
     }
