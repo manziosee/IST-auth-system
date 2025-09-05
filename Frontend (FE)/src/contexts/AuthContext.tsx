@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { authService } from '../services/authService';
+import React, { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
+import { AuthService } from '../services/authService';
 import { User, AuthState } from '../types/auth';
 
 interface AuthContextType {
   state: AuthState;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, role?: string) => Promise<void>;
+  register: (email: string, password: string, role?: 'admin' | 'teacher' | 'student') => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<void>;
 }
@@ -58,8 +58,32 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
   }
 }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+interface AuthProviderProps {
+  children: React.ReactNode;
+  apiUrl?: string;
+  clientId?: string;
+  onSuccess?: (tokens: { accessToken: string; refreshToken: string }) => void;
+  onError?: (error: string) => void;
+}
+
+export function AuthProvider({ 
+  children, 
+  apiUrl, 
+  clientId, 
+  onSuccess, 
+  onError 
+}: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, initialState);
+
+  // Create a configured auth service instance
+  const authService = useMemo(() => {
+    return new AuthService({
+      baseURL: apiUrl,
+      clientId,
+      onSuccess,
+      onError
+    });
+  }, [apiUrl, clientId, onSuccess, onError]);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -78,16 +102,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               },
             });
           } else {
-            await refreshToken();
+            // Try to refresh token inline to avoid dependency issues
+            try {
+              const response = await authService.refreshToken(tokens.refreshToken);
+              dispatch({
+                type: 'REFRESH_TOKEN',
+                payload: {
+                  accessToken: response.accessToken,
+                  refreshToken: response.refreshToken,
+                },
+              });
+              authService.storeTokens(response.accessToken, response.refreshToken);
+            } catch {
+              authService.clearTokens();
+              dispatch({ type: 'LOGOUT' });
+            }
           }
-        } catch (error) {
+        } catch {
           authService.clearTokens();
         }
       }
     };
 
     initializeAuth();
-  }, []);
+  }, [authService]);
 
   const login = async (email: string, password: string) => {
     dispatch({ type: 'LOGIN_START' });
@@ -103,15 +141,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (email: string, password: string, role = 'student') => {
+  const register = async (email: string, password: string, role: 'admin' | 'teacher' | 'student' = 'student') => {
     dispatch({ type: 'LOGIN_START' });
     try {
       const response = await authService.register(email, password, role);
-      dispatch({
-        type: 'LOGIN_SUCCESS',
-        payload: response,
-      });
-      authService.storeTokens(response.accessToken, response.refreshToken);
+      // Register returns a different type - just show success message
+      dispatch({ type: 'LOGIN_FAILURE', payload: response.message });
     } catch (error) {
       dispatch({ type: 'LOGIN_FAILURE', payload: error instanceof Error ? error.message : 'Registration failed' });
     }
@@ -138,7 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       });
       authService.storeTokens(response.accessToken, response.refreshToken);
-    } catch (error) {
+    } catch {
       logout();
     }
   };

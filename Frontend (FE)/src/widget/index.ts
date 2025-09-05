@@ -25,7 +25,7 @@ interface ISTAuthConfig {
 class ISTAuthWidget {
   private config: ISTAuthConfig;
   private container: HTMLElement | null = null;
-  private root: any = null;
+  private root: ReturnType<typeof createRoot> | null = null;
 
   constructor(config: ISTAuthConfig) {
     this.config = config;
@@ -67,12 +67,12 @@ class ISTAuthWidget {
         apiUrl: this.config.apiUrl,
         clientId: this.config.clientId,
         onSuccess: this.config.onSuccess,
-        onError: this.config.onError
-      },
-      React.createElement(AuthWidget, {
-        embedded: true,
-        redirectUri: this.config.redirectUri
-      })
+        onError: this.config.onError,
+        children: React.createElement(AuthWidget, {
+          embedded: true,
+          redirectUri: this.config.redirectUri
+        })
+      }
     );
 
     this.root = createRoot(this.container);
