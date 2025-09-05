@@ -34,7 +34,7 @@ export function EmailVerification({
       await onResendVerification();
       setResendCooldown(60); // 60 second cooldown
     } catch (error) {
-      setError('Failed to resend verification email');
+      setError(error instanceof Error ? error.message : 'Failed to resend verification email');
     } finally {
       setIsResending(false);
     }
@@ -56,7 +56,7 @@ export function EmailVerification({
         setError('Invalid verification code');
       }
     } catch (error) {
-      setError('Verification failed. Please try again.');
+      setError(error instanceof Error ? error.message : 'Verification failed. Please try again.');
     } finally {
       setIsVerifying(false);
     }
