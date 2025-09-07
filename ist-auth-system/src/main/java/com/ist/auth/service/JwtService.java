@@ -27,6 +27,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +42,9 @@ import java.util.UUID;
 public class JwtService {
     
     private static final Logger logger = LoggerFactory.getLogger(JwtService.class);
+    
+    @Autowired
+    private JwtKeyPairRepository keyPairRepository;
     
     @Value("${app.jwt.access-token-expiration:900000}")
     private long accessTokenExpiration;
