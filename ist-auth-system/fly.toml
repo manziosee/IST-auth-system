@@ -1,26 +1,31 @@
-app = "ist-auth-system"
-primary_region = "iad"
+# fly.toml app configuration file generated for ist-auth-system-sparkling-wind-9681 on 2025-09-08T00:59:23+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'ist-auth-system-sparkling-wind-9681'
+primary_region = 'iad'
 
 [build]
-  dockerfile = "Dockerfile.fly"
+  dockerfile = 'Dockerfile.fly'
+
+[env]
+  PORT = '8080'
+  SPRING_PROFILES_ACTIVE = 'prod'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = true
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
-  processes = ["app"]
+  processes = ['app']
 
 [[vm]]
-  cpu_kind = "shared"
+  memory = '1gb'
+  cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 1024
-
-[env]
-  SPRING_PROFILES_ACTIVE = "prod"
-  PORT = "8080"
 
 [[statics]]
-  guest_path = "/app/public"
-  url_prefix = "/static/"
+  guest_path = '/app/public'
+  url_prefix = '/static/'
