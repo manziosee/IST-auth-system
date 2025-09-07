@@ -1,0 +1,11 @@
+# Use pre-built JAR
+FROM openjdk:17-jre-slim
+
+WORKDIR /app
+
+# Copy the pre-built JAR
+COPY build/libs/ist-auth-system-0.0.1-SNAPSHOT.jar app.jar
+
+EXPOSE 8080
+
+CMD ["java", "-Dserver.port=8080", "-jar", "app.jar"]

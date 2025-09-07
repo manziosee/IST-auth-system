@@ -7,7 +7,7 @@ app = 'ist-auth-system-sparkling-wind-9681'
 primary_region = 'iad'
 
 [build]
-  dockerfile = 'Dockerfile.fly'
+  dockerfile = 'Dockerfile.prod'
 
 [env]
   PORT = '8080'
@@ -18,7 +18,7 @@ primary_region = 'iad'
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ['app']
 
 [[vm]]
@@ -26,6 +26,12 @@ primary_region = 'iad'
   cpu_kind = 'shared'
   cpus = 1
 
-[[statics]]
-  guest_path = '/app/public'
-  url_prefix = '/static/'
+[checks]
+  [checks.health]
+    grace_period = "60s"
+    interval = "30s"
+    method = "get"
+    path = "/api/actuator/health"
+    port = 8080
+    protocol = "http"
+    timeout = "10s"
