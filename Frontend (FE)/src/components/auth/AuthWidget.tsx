@@ -60,11 +60,8 @@ export function AuthWidget() {
         </div>
 
         <div className="bg-gradient-to-r from-violet-50 to-purple-50 px-8 py-6 text-center border-t border-violet-100">
-          <p className="text-sm text-violet-700 font-medium mb-2">
-            Demo Accounts: admin@school.edu / teacher@school.edu / student@school.edu
-          </p>
-          <p className="text-xs text-violet-600 bg-white/60 px-3 py-1 rounded-full inline-block">
-            Password: {mode === 'login' ? 'admin123, teacher123, student123' : 'any password'}
+          <p className="text-xs text-violet-600">
+            Secure authentication powered by IST Identity Provider
           </p>
         </div>
       </div>

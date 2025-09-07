@@ -17,10 +17,17 @@ export function RegisterForm() {
     e.preventDefault();
     
     if (password !== confirmPassword) {
+      // Show error message for password mismatch
+      alert('Passwords do not match. Please check your password and try again.');
       return;
     }
 
-    await register(email, password, role);
+    try {
+      await register(email, password, role);
+    } catch (error) {
+      // Error is already handled by the auth context
+      console.error('Registration failed:', error);
+    }
   };
 
   const roleOptions = [

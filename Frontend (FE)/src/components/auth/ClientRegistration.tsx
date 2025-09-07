@@ -43,10 +43,10 @@ export function ClientRegistration() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const client: Client = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: Math.random().toString(36).substring(2, 11),
         name: newClient.name,
-        clientId: `client_${Math.random().toString(36).substr(2, 16)}`,
-        clientSecret: `secret_${Math.random().toString(36).substr(2, 32)}`,
+        clientId: `client_${Math.random().toString(36).substring(2, 18)}`,
+        clientSecret: `secret_${Math.random().toString(36).substring(2, 34)}`,
         redirectUris: [newClient.redirectUri],
         scopes: ['openid', 'profile', 'email'],
         createdAt: new Date().toISOString()
@@ -65,9 +65,23 @@ export function ClientRegistration() {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    // You could add a toast notification here
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // You could add a toast notification here
+    } catch (error) {
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+      } catch (fallbackError) {
+        console.warn('Failed to copy to clipboard:', fallbackError);
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   const toggleSecretVisibility = (clientId: string) => {

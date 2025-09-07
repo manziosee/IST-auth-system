@@ -1,4 +1,5 @@
 import { User, LoginResponse, TokenRefreshResponse, EmailVerificationResponse } from '../types/auth';
+import { sanitizeLogMessage, sanitizeInput, isValidEmail } from '../utils/security';
 
 interface AuthServiceConfig {
   baseURL?: string;
@@ -18,10 +19,10 @@ class AuthService {
   private onError?: (error: string) => void;
 
   constructor(config: AuthServiceConfig = {}) {
-    this.baseURL = config.baseURL || 'http://localhost:8080/api/auth';
-    this.jwksURL = `${this.baseURL.replace('/api/auth', '')}/.well-known/jwks.json`;
-    this.clientId = config.clientId || 'school-management-app';
-    this.clientSecret = config.clientSecret || 'demo-client-secret';
+    this.baseURL = config.baseURL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/auth';
+    this.jwksURL = new URL('/.well-known/jwks.json', this.baseURL.replace('/api/auth', '')).href;
+    this.clientId = config.clientId || import.meta.env.VITE_CLIENT_ID || 'default-client';
+    this.clientSecret = config.clientSecret || import.meta.env.VITE_CLIENT_SECRET || '';
     this.onSuccess = config.onSuccess;
     this.onError = config.onError;
   }
@@ -29,7 +30,7 @@ class AuthService {
   configure(config: AuthServiceConfig): void {
     if (config.baseURL) {
       this.baseURL = config.baseURL;
-      this.jwksURL = `${this.baseURL.replace('/api/auth', '')}/.well-known/jwks.json`;
+      this.jwksURL = new URL('/.well-known/jwks.json', this.baseURL.replace('/api/auth', '')).href;
     }
     if (config.clientId) this.clientId = config.clientId;
     if (config.clientSecret) this.clientSecret = config.clientSecret;
@@ -39,69 +40,107 @@ class AuthService {
 
   async login(email: string, password: string): Promise<LoginResponse> {
     try {
-      // Simulate API call to IdP backend
-      await this.delay(1000);
-      
-      // Demo users for testing
-      const demoUsers = [
-        { email: 'admin@school.edu', password: 'admin123', role: 'admin' as const },
-        { email: 'teacher@school.edu', password: 'teacher123', role: 'teacher' as const },
-        { email: 'student@school.edu', password: 'student123', role: 'student' as const },
-      ];
+      // Make actual API call to backend
+      const response = await fetch(`${this.baseURL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ emailOrUsername: email, password }),
+      });
 
-      const user = demoUsers.find(u => u.email === email && u.password === password);
-      
-      if (!user) {
-        const error = 'Invalid email or password';
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Login failed' }));
+        const error = errorData.error || 'Invalid credentials';
         this.onError?.(error);
         throw new Error(error);
       }
 
-      const response = this.createAuthResponse(user.email, user.role);
+      const loginData = await response.json();
+
       this.onSuccess?.({ 
-        accessToken: response.accessToken, 
-        refreshToken: response.refreshToken 
+        accessToken: loginData.accessToken, 
+        refreshToken: loginData.refreshToken 
       });
       
-      return response;
+      return {
+        user: loginData.user,
+        accessToken: loginData.accessToken,
+        refreshToken: loginData.refreshToken
+      };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
-      this.onError?.(errorMessage);
-      throw error;
+      const sanitizedMessage = sanitizeLogMessage(errorMessage);
+      this.onError?.(sanitizedMessage);
+      throw new Error(sanitizedMessage);
     }
   }
 
   async register(email: string, password: string, role: 'admin' | 'teacher' | 'student' = 'student'): Promise<{ requiresVerification: boolean; message: string }> {
-    // Simulate API call to IdP backend
-    await this.delay(1200);
-    
-    // Use the parameters to avoid lint warnings
-    console.log(`Registering ${email} with role ${role}`);
-    
-    if (email.includes('existing')) {
-      throw new Error('Email already exists');
+    // Validate inputs
+    if (!isValidEmail(email)) {
+      throw new Error('Invalid email format');
     }
+    
+    if (password.length < 8) {
+      throw new Error('Password must be at least 8 characters long');
+    }
+    
+    try {
+      const username = email.split('@')[0]; // Generate username from email
+      const [firstName, lastName] = [email.split('@')[0], 'User']; // Default names
+      
+      const response = await fetch(`${this.baseURL}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          username, 
+          email, 
+          firstName, 
+          lastName, 
+          password 
+        }),
+      });
 
-    // In real implementation, this would create user and send verification email
-    return {
-      requiresVerification: true,
-      message: 'Registration successful. Please check your email for verification.'
-    };
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Registration failed' }));
+        throw new Error(errorData.error || 'Registration failed');
+      }
+
+      const data = await response.json();
+      return {
+        requiresVerification: true,
+        message: data.message || 'Registration successful. Please check your email for verification.'
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      const sanitizedMessage = sanitizeLogMessage(errorMessage);
+      throw new Error(sanitizedMessage);
+    }
   }
 
   async refreshToken(refreshToken: string): Promise<TokenRefreshResponse> {
-    // Simulate API call to IdP backend
-    await this.delay(500);
-    
     try {
-      const payload = this.decodeToken(refreshToken);
-      const newTokens = this.generateTokens(payload);
-      
+      const response = await fetch(`${this.baseURL}/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to refresh token');
+      }
+
+      const data = await response.json();
       return {
-        accessToken: newTokens.accessToken,
-        refreshToken: newTokens.refreshToken,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
       };
-    } catch {
+    } catch (error) {
       throw new Error('Invalid refresh token');
     }
   }
@@ -128,30 +167,56 @@ class AuthService {
   }
 
   storeTokens(accessToken: string, refreshToken: string): void {
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
+    try {
+      localStorage.setItem('access_token', accessToken);
+      localStorage.setItem('refresh_token', refreshToken);
+    } catch (error) {
+      console.warn('Failed to store tokens in localStorage:', error);
+      // Fallback to memory storage or handle gracefully
+    }
   }
 
   getStoredTokens(): { accessToken: string | null; refreshToken: string | null } {
-    return {
-      accessToken: localStorage.getItem('access_token'),
-      refreshToken: localStorage.getItem('refresh_token'),
-    };
+    try {
+      return {
+        accessToken: localStorage.getItem('access_token'),
+        refreshToken: localStorage.getItem('refresh_token'),
+      };
+    } catch (error) {
+      console.warn('Failed to retrieve tokens from localStorage:', error);
+      return { accessToken: null, refreshToken: null };
+    }
   }
 
   clearTokens(): void {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    try {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+    } catch (error) {
+      console.warn('Failed to clear tokens from localStorage:', error);
+    }
   }
 
   async sendVerificationEmail(email: string): Promise<EmailVerificationResponse> {
-    await this.delay(800);
-    console.log(`Verification email sent to ${email}`);
-    
-    return {
-      success: true,
-      message: `Verification email sent to ${email}. Please check your inbox.`
-    };
+    try {
+      const response = await fetch(`${this.baseURL}/send-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send verification email');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      const sanitizedEmail = sanitizeInput(email);
+      throw new Error(`Failed to send verification email to ${sanitizedEmail}`);
+    }
   }
 
   async verifyEmail(email: string, code: string): Promise<LoginResponse> {
@@ -174,22 +239,21 @@ class AuthService {
     }
 
     try {
-      // In real implementation, fetch from JWKS endpoint
-      await this.delay(500);
+      const response = await fetch(this.jwksURL);
+      if (!response.ok) {
+        throw new Error('Failed to fetch JWKS');
+      }
       
-      // Mock public key for demo
-      const publicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4f5wg5l2hKsTeNem/V41
-fGnJm6gOdrj8ym3rFkEjWT2btf+FxKlaAWYxgxYaLPFyHPxCL4HHQOFwlOWN4Hxp
-T3S+HgOQhqMa9+Ld4+5g5l2hKsTeNem/V41fGnJm6gOdrj8ym3rFkEjWT2btf+Fx
-KlaAWYxgxYaLPFyHPxCL4HHQOFwlOWN4HxpT3S+HgOQhqMa9+Ld4+5g5l2hKsTe
-Nem/V41fGnJm6gOdrj8ym3rFkEjWT2btf+FxKlaAWYxgxYaLPFyHPxCL4HHQOFW
-lOWN4HxpT3S+HgOQhqMa9+Ld4+5g
------END PUBLIC KEY-----`;
+      const jwks = await response.json();
+      if (jwks.keys && jwks.keys.length > 0) {
+        // Extract the first key for simplicity
+        const key = jwks.keys[0];
+        this.publicKey = key;
+        return key;
+      }
       
-      this.publicKey = publicKey;
-      return publicKey;
-    } catch {
+      throw new Error('No keys found in JWKS');
+    } catch (error) {
       throw new Error('Failed to fetch public key');
     }
   }

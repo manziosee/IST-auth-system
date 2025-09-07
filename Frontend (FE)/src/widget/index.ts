@@ -33,15 +33,19 @@ class ISTAuthWidget {
   }
 
   private validateConfig(): void {
-    if (!this.config.containerId) {
-      throw new Error('Container ID is required');
+    // Sanitize inputs to prevent injection
+    if (!this.config.containerId || typeof this.config.containerId !== 'string') {
+      throw new Error('Valid container ID is required');
     }
-    if (!this.config.apiUrl) {
-      throw new Error('API URL is required');
+    if (!this.config.apiUrl || typeof this.config.apiUrl !== 'string') {
+      throw new Error('Valid API URL is required');
     }
-    if (!this.config.clientId) {
-      throw new Error('Client ID is required');
+    if (!this.config.clientId || typeof this.config.clientId !== 'string') {
+      throw new Error('Valid client ID is required');
     }
+    
+    // Sanitize container ID to prevent XSS
+    this.config.containerId = this.config.containerId.replace(/[^a-zA-Z0-9_-]/g, '');
   }
 
   public init(): void {
@@ -80,12 +84,18 @@ class ISTAuthWidget {
   }
 
   public destroy(): void {
-    if (this.root) {
-      this.root.unmount();
-      this.root = null;
-    }
-    if (this.container && this.config.theme) {
-      this.container.classList.remove(`ist-auth-theme-${this.config.theme}`);
+    try {
+      if (this.root) {
+        this.root.unmount();
+        this.root = null;
+      }
+    } catch (error) {
+      console.warn('Failed to unmount widget:', error);
+    } finally {
+      // Always cleanup theme classes even if unmount fails
+      if (this.container && this.config.theme) {
+        this.container.classList.remove(`ist-auth-theme-${this.config.theme}`);
+      }
     }
   }
 }

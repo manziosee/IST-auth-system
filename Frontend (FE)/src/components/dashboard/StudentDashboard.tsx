@@ -61,16 +61,16 @@ export function StudentDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <StatsCard key={index} {...stat} />
+        {stats.map((stat) => (
+          <StatsCard key={stat.title} {...stat} />
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card title="Today's Classes" className="p-6">
           <div className="space-y-4">
-            {upcomingClasses.map((class_item, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            {upcomingClasses.map((class_item) => (
+              <div key={class_item.course} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                 <div className="flex-1">
                   <h3 className="font-medium text-gray-900">{class_item.course}</h3>
                   <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
@@ -89,8 +89,8 @@ export function StudentDashboard() {
 
         <Card title="Assignments" className="p-6">
           <div className="space-y-4">
-            {assignments.map((assignment, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            {assignments.map((assignment) => (
+              <div key={`${assignment.course}-${assignment.title}`} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
                     {getStatusIcon(assignment.status)}
