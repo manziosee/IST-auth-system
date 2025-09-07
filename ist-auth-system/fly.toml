@@ -7,7 +7,7 @@ app = 'ist-auth-system-sparkling-wind-9681'
 primary_region = 'iad'
 
 [build]
-  dockerfile = 'Dockerfile.prod'
+  dockerfile = 'Dockerfile.final'
 
 [env]
   PORT = '8080'
