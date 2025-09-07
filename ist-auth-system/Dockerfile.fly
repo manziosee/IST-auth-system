@@ -1,0 +1,15 @@
+# Fly.io Dockerfile for Spring Boot
+FROM gradle:8.5-jdk17 AS build
+
+WORKDIR /app
+COPY . .
+RUN ./gradlew build -x test --no-daemon
+
+FROM openjdk:17-jre-slim
+
+WORKDIR /app
+COPY --from=build /app/build/libs/ist-auth-system-0.0.1-SNAPSHOT.jar app.jar
+
+EXPOSE 8080
+
+CMD ["java", "-Dserver.port=8080", "-jar", "app.jar"]
