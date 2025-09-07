@@ -16,21 +16,28 @@ export function OAuthProviders({
 }: OAuthProvidersProps) {
   
   const handleLinkedInLogin = () => {
-    // Redirect to IdP OAuth endpoint
-    const clientId = 'school-management-app';
-    const redirectUri = `${window.location.origin}/auth/callback/linkedin`;
-    const state = Math.random().toString(36).substring(2, 15);
-    
-    // Store state for verification
-    localStorage.setItem('oauth_state', state);
-    
-    // In production, this would redirect to the IdP's OAuth endpoint
-    // which would then redirect to LinkedIn
-    const oauthUrl = `http://localhost:8080/oauth2/authorization/linkedin?client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}`;
-    
-    // For demo purposes, show what would happen
-    console.log('OAuth URL:', oauthUrl);
-    onLinkedInLogin();
+    try {
+      // Redirect to IdP OAuth endpoint
+      const clientId = import.meta.env.VITE_CLIENT_ID || 'default-client';
+      const redirectUri = `${window.location.origin}/auth/callback/linkedin`;
+      const state = Math.random().toString(36).substring(2, 15);
+      
+      // Store state for verification
+      try {
+        localStorage.setItem('oauth_state', state);
+      } catch (storageError) {
+        console.warn('Failed to store OAuth state:', storageError);
+        // Continue without state storage in private browsing mode
+      }
+      
+      // In production, this would redirect to the IdP's OAuth endpoint
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+      const oauthUrl = `${baseUrl.replace('/api', '')}/oauth2/authorization/linkedin?client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}`;
+      
+      onLinkedInLogin();
+    } catch (error) {
+      console.error('OAuth login failed:', error);
+    }
   };
 
   return (

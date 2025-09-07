@@ -44,16 +44,16 @@ export function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <StatsCard key={index} {...stat} />
+        {stats.map((stat) => (
+          <StatsCard key={stat.title} {...stat} />
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card title="System Activities" className="p-6">
           <div className="space-y-4">
-            {systemActivities.map((activity, index) => (
-              <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+            {systemActivities.map((activity) => (
+              <div key={`${activity.action}-${activity.time}`} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
                 <div className="flex-shrink-0">
                   {activity.type === 'system' && <Database className="h-5 w-5 text-blue-600" />}
                   {activity.type === 'security' && <Shield className="h-5 w-5 text-red-600" />}
@@ -71,8 +71,8 @@ export function AdminDashboard() {
 
         <Card title="Department Budgets" className="p-6">
           <div className="space-y-4">
-            {departmentBudgets.map((budget, index) => (
-              <div key={index} className="space-y-2">
+            {departmentBudgets.map((budget) => (
+              <div key={budget.department} className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-gray-900">{budget.department}</span>
                   <span className="text-sm text-gray-600">{budget.spent} / {budget.allocated}</span>
