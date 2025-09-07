@@ -2,6 +2,7 @@ app = "ist-auth-system"
 primary_region = "iad"
 
 [build]
+  dockerfile = "Dockerfile.fly"
 
 [http_service]
   internal_port = 8080
