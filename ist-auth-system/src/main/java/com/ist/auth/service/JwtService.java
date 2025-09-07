@@ -55,9 +55,6 @@ public class JwtService {
     @Value("${app.jwt.key-size:2048}")
     private int keySize;
     
-    @Autowired
-    private JwtKeyPairRepository keyPairRepository;
-    
     private RSAPrivateKey privateKey;
     private RSAPublicKey publicKey;
     private String keyId;
