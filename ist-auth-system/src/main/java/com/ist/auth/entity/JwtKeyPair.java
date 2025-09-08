@@ -14,13 +14,11 @@ public class JwtKeyPair {
     @Column(name = "key_id", unique = true, nullable = false)
     private String keyId;
     
-    @Lob
-    @Column(name = "private_key", nullable = false)
-    private byte[] privateKey;
+    @Column(name = "private_key", nullable = false, columnDefinition = "TEXT")
+    private String privateKey;
     
-    @Lob
-    @Column(name = "public_key", nullable = false)
-    private byte[] publicKey;
+    @Column(name = "public_key", nullable = false, columnDefinition = "TEXT")
+    private String publicKey;
     
     @Column(name = "active", nullable = false)
     private Boolean active = true;
@@ -38,8 +36,8 @@ public class JwtKeyPair {
     
     public JwtKeyPair(String keyId, byte[] privateKey, byte[] publicKey) {
         this.keyId = keyId;
-        this.privateKey = privateKey;
-        this.publicKey = publicKey;
+        this.privateKey = java.util.Base64.getEncoder().encodeToString(privateKey);
+        this.publicKey = java.util.Base64.getEncoder().encodeToString(publicKey);
     }
     
     // Getters and Setters
@@ -49,11 +47,19 @@ public class JwtKeyPair {
     public String getKeyId() { return keyId; }
     public void setKeyId(String keyId) { this.keyId = keyId; }
     
-    public byte[] getPrivateKey() { return privateKey; }
-    public void setPrivateKey(byte[] privateKey) { this.privateKey = privateKey; }
+    public byte[] getPrivateKey() { 
+        return java.util.Base64.getDecoder().decode(privateKey); 
+    }
+    public void setPrivateKey(byte[] privateKey) { 
+        this.privateKey = java.util.Base64.getEncoder().encodeToString(privateKey); 
+    }
     
-    public byte[] getPublicKey() { return publicKey; }
-    public void setPublicKey(byte[] publicKey) { this.publicKey = publicKey; }
+    public byte[] getPublicKey() { 
+        return java.util.Base64.getDecoder().decode(publicKey); 
+    }
+    public void setPublicKey(byte[] publicKey) { 
+        this.publicKey = java.util.Base64.getEncoder().encodeToString(publicKey); 
+    }
     
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }

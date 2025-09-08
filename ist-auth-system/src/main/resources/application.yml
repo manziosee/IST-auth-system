@@ -1,6 +1,8 @@
 spring:
   application:
     name: ist-auth-system
+  main:
+    allow-circular-references: true
   
   profiles:
     active: dev
@@ -42,8 +44,8 @@ spring:
       client:
         registration:
           linkedin:
-            client-id: ${LINKEDIN_CLIENT_ID:}
-            client-secret: ${LINKEDIN_CLIENT_SECRET:}
+            client-id: ${LINKEDIN_CLIENT_ID:dummy}
+            client-secret: ${LINKEDIN_CLIENT_SECRET:dummy}
             scope: r_liteprofile,r_emailaddress
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/oauth2/callback/{registrationId}"
@@ -106,7 +108,9 @@ app:
 
 ---
 spring:
-  profiles: prod
+  config:
+    activate:
+      on-profile: prod
   
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/ist_auth}
