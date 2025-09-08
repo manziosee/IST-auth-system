@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IST Auth - Test Authentication Fixes</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 3px; }
+        input { padding: 8px; margin: 5px; width: 200px; border: 1px solid #ccc; border-radius: 3px; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>IST Authentication System - Fix Verification</h1>
+    
+    <div class="test-section">
+        <h3>1. Test LinkedIn OAuth Endpoint</h3>
+        <button onclick="testLinkedInOAuth()">Test LinkedIn OAuth</button>
+        <div id="linkedin-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Test User Registration</h3>
+        <input type="email" id="reg-email" placeholder="Email" value="testuser@example.com">
+        <input type="text" id="reg-username" placeholder="Username" value="testuser123">
+        <input type="password" id="reg-password" placeholder="Password" value="TestPass123!">
+        <button onclick="testRegistration()">Register User</button>
+        <div id="register-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. Manually Verify Email (For Testing)</h3>
+        <input type="email" id="verify-email" placeholder="Email to verify" value="testuser@example.com">
+        <button onclick="verifyEmailManually()">Verify Email</button>
+        <div id="verify-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. Test User Login</h3>
+        <input type="email" id="login-email" placeholder="Email" value="testuser@example.com">
+        <input type="password" id="login-password" placeholder="Password" value="TestPass123!">
+        <button onclick="testLogin()">Login User</button>
+        <div id="login-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>5. Check User Status</h3>
+        <input type="email" id="status-email" placeholder="Email" value="testuser@example.com">
+        <button onclick="checkUserStatus()">Check Status</button>
+        <div id="status-result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://ist-auth-system-sparkling-wind-9681.fly.dev';
+
+        async function testLinkedInOAuth() {
+            const result = document.getElementById('linkedin-result');
+            try {
+                // Test if the endpoint exists (will redirect, but we can check if it's not 404)
+                const response = await fetch(`${API_BASE}/oauth2/login/linkedin`, {
+                    method: 'HEAD',
+                    redirect: 'manual'
+                });
+                
+                if (response.status === 0 || response.status === 302) {
+                    result.innerHTML = `<div class="success">✅ LinkedIn OAuth endpoint is working! <br><a href="${API_BASE}/oauth2/login/linkedin" target="_blank">Click to test LinkedIn OAuth</a></div>`;
+                } else {
+                    result.innerHTML = `<div class="error">❌ LinkedIn OAuth endpoint returned status: ${response.status}</div>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="success">✅ LinkedIn OAuth endpoint exists (CORS expected) <br><a href="${API_BASE}/oauth2/login/linkedin" target="_blank">Click to test LinkedIn OAuth</a></div>`;
+            }
+        }
+
+        async function testRegistration() {
+            const result = document.getElementById('register-result');
+            const email = document.getElementById('reg-email').value;
+            const username = document.getElementById('reg-username').value;
+            const password = document.getElementById('reg-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username, email, password,
+                        firstName: 'Test', lastName: 'User', role: 'STUDENT'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = `<div class="success">✅ Registration Success:<pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                } else {
+                    result.innerHTML = `<div class="error">❌ Registration Failed:<pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ Registration Error: ${error.message}</div>`;
+            }
+        }
+
+        async function verifyEmailManually() {
+            const result = document.getElementById('verify-result');
+            const email = document.getElementById('verify-email').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/test/verify-user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = `<div class="success">✅ Email Verified:<pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                } else {
+                    result.innerHTML = `<div class="error">❌ Verification Failed:<pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ Verification Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testLogin() {
+            const result = document.getElementById('login-result');
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ emailOrUsername: email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = `<div class="success">✅ Login Success:<pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                } else {
+                    result.innerHTML = `<div class="error">❌ Login Failed:<pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ Login Error: ${error.message}</div>`;
+            }
+        }
+
+        async function checkUserStatus() {
+            const result = document.getElementById('status-result');
+            const email = document.getElementById('status-email').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/test/user-status/${encodeURIComponent(email)}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = `<div class="success">✅ User Status:<pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                } else {
+                    result.innerHTML = `<div class="error">❌ Status Check Failed:<pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ Status Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

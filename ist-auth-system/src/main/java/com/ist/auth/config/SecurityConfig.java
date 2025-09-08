@@ -49,20 +49,18 @@ public class SecurityConfig {
             .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(jwtAuthenticationEntryPoint))
             .authorizeHttpRequests(authz -> authz
                 // Public endpoints
+                .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/.well-known/**").permitAll()
                 .requestMatchers("/oauth2/**").permitAll()
-                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/api/actuator/**").permitAll()
+                .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/v3/api-docs/**").permitAll()
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/swagger-ui.html").permitAll()
                 
                 // Admin endpoints
                 .requestMatchers("/admin/**").permitAll() // Temporarily allow for testing
-                
-                // Protected endpoints
-                .requestMatchers("/budget/**").permitAll() // Temporarily allow for testing
-                .requestMatchers("/oauth/clients/**").permitAll() // Temporarily allow for testing
                 
                 // All other requests
                 .anyRequest().permitAll()
