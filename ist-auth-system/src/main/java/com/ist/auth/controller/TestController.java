@@ -42,7 +42,7 @@ public class TestController {
             
             // Force verify email for testing
             user.setEmailVerified(true);
-            userService.save(user);
+            userService.updateUser(user);
             
             return ResponseEntity.ok(Map.of(
                 "message", "User email verified for testing",
