@@ -48,7 +48,23 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(jwtAuthenticationEntryPoint))
             .authorizeHttpRequests(authz -> authz
-                // Allow all for testing
+                // Public endpoints
+                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/.well-known/**").permitAll()
+                .requestMatchers("/oauth2/**").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/v3/api-docs/**").permitAll()
+                .requestMatchers("/swagger-ui/**").permitAll()
+                .requestMatchers("/swagger-ui.html").permitAll()
+                
+                // Admin endpoints
+                .requestMatchers("/admin/**").permitAll() // Temporarily allow for testing
+                
+                // Protected endpoints
+                .requestMatchers("/budget/**").permitAll() // Temporarily allow for testing
+                .requestMatchers("/oauth/clients/**").permitAll() // Temporarily allow for testing
+                
+                // All other requests
                 .anyRequest().permitAll()
             );
         

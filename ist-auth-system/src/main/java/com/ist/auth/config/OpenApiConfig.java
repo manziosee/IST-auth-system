@@ -69,11 +69,11 @@ public class OpenApiConfig {
                                 .url("https://opensource.org/licenses/MIT")))
                 .servers(List.of(
                         new Server()
-                                .url("http://localhost:" + serverPort)
-                                .description("Local Development Server"),
-                        new Server()
                                 .url("https://ist-auth-system-sparkling-wind-9681.fly.dev")
-                                .description("Production Server")))
+                                .description("Production Server"),
+                        new Server()
+                                .url("http://localhost:" + serverPort)
+                                .description("Local Development Server")))
                 .addSecurityItem(new SecurityRequirement()
                         .addList("Bearer Authentication"))
                 .components(new Components()

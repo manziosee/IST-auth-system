@@ -23,8 +23,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/auth")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
+@RequestMapping("/auth")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173", "https://ist-auth-system.vercel.app"})
 @Tag(name = "Authentication", description = "Authentication and user management endpoints")
 public class AuthController {
     
@@ -64,7 +64,8 @@ public class AuthController {
                 request.email,
                 request.firstName,
                 request.lastName,
-                request.password
+                request.password,
+                request.role
             );
             
             return ResponseEntity.ok(response);
@@ -123,52 +124,27 @@ public class AuthController {
         }
     }
     
-    @Operation(summary = "Verify Email Address", description = "Verify user email using verification token")
-    @PostMapping("/verify-email")
-    public ResponseEntity<Map<String, Object>> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
-        logger.info("Email verification attempt");
+    @Operation(summary = "Verify Email via GET", description = "Verify email using GET request for email links")
+    @GetMapping("/verify-email")
+    public ResponseEntity<String> verifyEmailGet(@RequestParam String token) {
+        logger.info("GET Email verification attempt for token: {}", token);
         
         try {
-            boolean verified = authenticationService.verifyEmail(request.token);
+            boolean verified = authenticationService.verifyEmail(token);
             
             if (verified) {
-                return ResponseEntity.ok(Map.of(
-                    "message", "Email verified successfully",
-                    "verified", true
-                ));
+                return ResponseEntity.ok()
+                    .header("Location", "https://ist-auth-system.vercel.app/login?verified=true")
+                    .body("<html><body><h2>Email Verified Successfully!</h2><p>Redirecting to login...</p><script>window.location.href='https://ist-auth-system.vercel.app/login?verified=true';</script></body></html>");
             } else {
                 return ResponseEntity.badRequest()
-                        .body(Map.of(
-                            "error", "Invalid or expired verification token",
-                            "verified", false
-                        ));
+                    .body("<html><body><h2>Verification Failed</h2><p>Invalid or expired token.</p></body></html>");
             }
             
         } catch (Exception e) {
             logger.error("Email verification failed", e);
             return ResponseEntity.badRequest()
-                    .body(Map.of(
-                        "error", "Email verification failed",
-                        "verified", false
-                    ));
-        }
-    }
-    
-    @PostMapping("/resend-verification")
-    public ResponseEntity<Map<String, Object>> resendVerificationEmail(@Valid @RequestBody ResendVerificationRequest request) {
-        logger.info("Resend verification email attempt for: {}", sanitizeForLog(request.email));
-        
-        try {
-            authenticationService.resendVerificationEmail(request.email);
-            return ResponseEntity.ok(Map.of(
-                "message", "Verification email sent successfully",
-                "emailSent", true
-            ));
-            
-        } catch (Exception e) {
-            logger.error("Resend verification email failed for: {}", sanitizeForLog(request.email), e);
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Failed to send verification email"));
+                .body("<html><body><h2>Verification Error</h2><p>" + e.getMessage() + "</p></body></html>");
         }
     }
     
@@ -225,6 +201,8 @@ public class AuthController {
         @NotBlank(message = "Password is required")
         @Size(min = 8, message = "Password must be at least 8 characters long")
         public String password;
+        
+        public String role = "STUDENT"; // Default role
     }
     
     public static class RefreshTokenRequest {
@@ -237,16 +215,7 @@ public class AuthController {
         public Long userId;
     }
     
-    public static class VerifyEmailRequest {
-        @NotBlank(message = "Verification token is required")
-        public String token;
-    }
-    
-    public static class ResendVerificationRequest {
-        @NotBlank(message = "Email is required")
-        @Email(message = "Email should be valid")
-        public String email;
-    }
+    // Email verification DTOs removed
     
     public static class ValidateTokenRequest {
         @NotBlank(message = "Token is required")
