@@ -62,10 +62,6 @@ public class SecurityConfig {
                 // Admin endpoints
                 .requestMatchers("/admin/**").permitAll() // Temporarily allow for testing
                 
-                // Protected endpoints
-                .requestMatchers("/budget/**").permitAll() // Temporarily allow for testing
-                .requestMatchers("/oauth/clients/**").permitAll() // Temporarily allow for testing
-                
                 // All other requests
                 .anyRequest().permitAll()
             );

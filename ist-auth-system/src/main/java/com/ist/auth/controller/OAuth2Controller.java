@@ -16,8 +16,19 @@ public class OAuth2Controller {
     
     @GetMapping("/login/linkedin")
     public RedirectView linkedinLogin() {
-        // Mock LinkedIn OAuth for demo - redirect to frontend with success
-        return new RedirectView("https://ist-auth-system.vercel.app/oauth/callback?provider=linkedin&success=true");
+        String clientId = "77p4t5kqfgi1qi";
+        String redirectUri = "https://ist-auth-system.vercel.app/oauth/callback";
+        String scope = "openid profile email";
+        String state = "linkedin_oauth_" + System.currentTimeMillis();
+        
+        String linkedinAuthUrl = "https://www.linkedin.com/oauth/v2/authorization" +
+            "?response_type=code" +
+            "&client_id=" + clientId +
+            "&redirect_uri=" + redirectUri +
+            "&scope=" + scope +
+            "&state=" + state;
+        
+        return new RedirectView(linkedinAuthUrl);
     }
     
     @GetMapping("/success")
