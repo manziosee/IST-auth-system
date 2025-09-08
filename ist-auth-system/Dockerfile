@@ -9,6 +9,14 @@ WORKDIR /app
 COPY . .
 RUN ./gradlew build -x test --no-daemon
 
+<<<<<<<<< Temporary merge branch 1
+# Copy gradle files
+COPY build.gradle.kts settings.gradle.kts ./
+COPY gradle gradle
+
+# Download dependencies
+RUN gradle dependencies --no-daemon
+
 # Copy source code
 COPY src src
 
