@@ -1,27 +1,77 @@
-import { BookOpen, Clock, Award, TrendingUp, FileText, CheckCircle, Target, Brain } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BookOpen, Clock, Award, TrendingUp, FileText, CheckCircle, Target, Brain, DollarSign, Eye } from 'lucide-react';
 import { StatsCard } from '../ui/StatsCard';
 import { Card } from '../ui/Card';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { budgetService } from '../../services/budgetService';
+import { useAuth } from '../../contexts/AuthContext';
 
 export function StudentDashboard() {
-  const stats = [
-    { title: 'Enrolled Courses', value: '5', change: 'This semester', icon: BookOpen, color: 'blue' as const },
-    { title: 'Assignments Due', value: '3', change: 'This week', icon: FileText, color: 'orange' as const },
-    { title: 'Current GPA', value: '3.7', change: '+0.2 from last semester', icon: Award, color: 'green' as const },
-    { title: 'Completion Rate', value: '92%', change: '+5% this month', icon: TrendingUp, color: 'purple' as const },
-  ];
+  const { state } = useAuth();
+  const [stats, setStats] = useState([]);
+  const [budgetCategories, setBudgetCategories] = useState([]);
+  const [budgetSummary, setBudgetSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const upcomingClasses = [
-    { course: 'Advanced Mathematics', time: '9:00 AM', room: 'Room 201', instructor: 'Dr. Smith' },
-    { course: 'Physics', time: '1:00 PM', room: 'Lab 101', instructor: 'Prof. Johnson' },
-    { course: 'Computer Science', time: '3:30 PM', room: 'Room 405', instructor: 'Dr. Williams' },
-  ];
+  useEffect(() => {
+    const fetchStudentData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch budget data that students can view
+        const [categories, summary] = await Promise.all([
+          budgetService.getCategories(),
+          budgetService.getBudgetSummary()
+        ]);
+        
+        setBudgetCategories(categories);
+        setBudgetSummary(summary);
+        
+        // Build stats from API data (student perspective)
+        const studentCategories = categories.filter(cat => 
+          cat.name.toLowerCase().includes('student') || 
+          cat.name.toLowerCase().includes('scholarship') ||
+          cat.name.toLowerCase().includes('activities')
+        );
+        
+        const totalStudentBudget = studentCategories.reduce((sum, cat) => sum + cat.allocatedAmount, 0);
+        const avgUtilization = categories.length > 0 ? 
+          categories.reduce((sum, cat) => sum + cat.utilizationPercentage, 0) / categories.length : 0;
+        
+        setStats([
+          { title: 'Budget Categories', value: categories.length.toString(), change: 'Available to view', icon: BookOpen, color: 'blue' as const },
+          { title: 'Student Programs', value: studentCategories.length.toString(), change: 'Active programs', icon: Target, color: 'orange' as const },
+          { title: 'Total Budget', value: `$${categories.reduce((sum, cat) => sum + cat.allocatedAmount, 0).toLocaleString()}`, change: 'Institution budget', icon: DollarSign, color: 'green' as const },
+          { title: 'Avg Utilization', value: `${avgUtilization.toFixed(1)}%`, change: 'Budget usage', icon: TrendingUp, color: 'purple' as const },
+        ]);
+        
+      } catch (err) {
+        setError('Failed to load student data');
+        console.error('Student dashboard error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const assignments = [
-    { course: 'Mathematics', title: 'Algebra Problem Set', dueDate: 'Tomorrow', status: 'pending' },
-    { course: 'Physics', title: 'Lab Report #3', dueDate: 'Dec 15', status: 'pending' },
-    { course: 'Computer Science', title: 'Final Project', dueDate: 'Dec 20', status: 'in-progress' },
-    { course: 'Chemistry', title: 'Research Paper', dueDate: 'Dec 10', status: 'completed' },
-  ];
+    fetchStudentData();
+  }, [state.user]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p className="text-red-600">{error}</p>
+      </div>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -67,96 +117,98 @@ export function StudentDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Today's Classes" className="p-6">
+        <Card title="Budget Overview" className="p-6">
           <div className="space-y-4">
-            {upcomingClasses.map((class_item) => (
-              <div key={class_item.course} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            {budgetCategories.slice(0, 4).map((category) => (
+              <div key={category.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                 <div className="flex-1">
-                  <h3 className="font-medium text-gray-900">{class_item.course}</h3>
+                  <h3 className="font-medium text-gray-900">{category.name}</h3>
                   <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
                     <span className="flex items-center space-x-1">
-                      <Clock className="h-4 w-4" />
-                      <span>{class_item.time}</span>
+                      <DollarSign className="h-4 w-4" />
+                      <span>${category.allocatedAmount.toLocaleString()}</span>
                     </span>
-                    <span>{class_item.room}</span>
+                    <span>{category.department || 'General'}</span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">{class_item.instructor}</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {category.utilizationPercentage.toFixed(1)}% utilized
+                  </p>
+                </div>
+                <div className="text-right">
+                  <Eye className="h-5 w-5 text-gray-400" />
                 </div>
               </div>
             ))}
+            {budgetCategories.length === 0 && (
+              <p className="text-gray-500 text-center py-4">No budget information available</p>
+            )}
           </div>
         </Card>
 
-        <Card title="Assignments" className="p-6">
+        <Card title="Budget Categories" className="p-6">
           <div className="space-y-4">
-            {assignments.map((assignment) => (
-              <div key={`${assignment.course}-${assignment.title}`} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            {budgetCategories.map((category) => (
+              <div key={category.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
-                    {getStatusIcon(assignment.status)}
-                    <h3 className="font-medium text-gray-900">{assignment.title}</h3>
+                    <DollarSign className="h-4 w-4 text-green-600" />
+                    <h3 className="font-medium text-gray-900">{category.name}</h3>
                   </div>
-                  <p className="text-sm text-gray-600">{assignment.course}</p>
-                  <p className="text-xs text-gray-500 mt-1">Due: {assignment.dueDate}</p>
+                  <p className="text-sm text-gray-600">{category.department || 'General Department'}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Remaining: ${category.remainingAmount.toLocaleString()}
+                  </p>
                 </div>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(assignment.status)}`}>
-                  {assignment.status.replace('-', ' ')}
-                </span>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">
+                    ${category.spentAmount.toLocaleString()}
+                  </div>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    category.isOverBudget ? 'bg-red-100 text-red-800' :
+                    category.utilizationPercentage > 75 ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-green-100 text-green-800'
+                  }`}>
+                    {category.utilizationPercentage.toFixed(1)}%
+                  </span>
+                </div>
               </div>
             ))}
+            {budgetCategories.length === 0 && (
+              <p className="text-gray-500 text-center py-4">No budget categories available</p>
+            )}
           </div>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card title="Grade Progress" className="p-6">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">Advanced Mathematics</span>
-              <span className="text-sm font-bold text-green-600">A-</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-green-600 h-2 rounded-full" style={{width: '88%'}}></div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">Physics</span>
-              <span className="text-sm font-bold text-blue-600">B+</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full" style={{width: '82%'}}></div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">Computer Science</span>
-              <span className="text-sm font-bold text-purple-600">A</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-purple-600 h-2 rounded-full" style={{width: '95%'}}></div>
-            </div>
-          </div>
-        </Card>
-
-        <Card title="Study Hours This Week" className="p-6 lg:col-span-2">
-          <div className="grid grid-cols-7 gap-2 mb-4">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-              <div key={day} className="text-center">
-                <div className="text-xs text-gray-500 mb-2">{day}</div>
-                <div 
-                  className="bg-blue-600 rounded mx-auto transition-all duration-300 hover:bg-blue-700"
-                  style={{ 
-                    height: `${[4, 6, 5, 7, 8, 3, 2][index] * 8}px`,
-                    width: '12px'
-                  }}
-                />
-                <div className="text-xs text-gray-600 mt-1">{[2, 3, 2.5, 3.5, 4, 1.5, 1][index]}h</div>
+      <Card title="Institution Budget Summary" className="p-6">
+        {budgetSummary ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {budgetCategories.length}
               </div>
-            ))}
+              <div className="text-sm text-gray-600">Active Categories</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                ${budgetCategories.reduce((sum, cat) => sum + cat.allocatedAmount, 0).toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-600">Total Allocated</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                ${budgetCategories.reduce((sum, cat) => sum + cat.spentAmount, 0).toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-600">Total Spent</div>
+            </div>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">Total: 17.5 hours</span>
-            <span className="text-green-600 font-medium">↑ 12% from last week</span>
+        ) : (
+          <div className="text-center py-8">
+            <LoadingSpinner size="md" />
+            <p className="text-gray-500 mt-2">Loading budget summary...</p>
           </div>
-        </Card>
-      </div>
+        )}
+      </Card>
     </div>
   );
 }
