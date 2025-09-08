@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ist-auth-postgres-prod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ist_auth_db}
+      POSTGRES_USER: ${POSTGRES_USER:-ist_auth_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ist_auth_password}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    networks:
+      - ist-auth-network-prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ist_auth_user} -d ${POSTGRES_DB:-ist_auth_db}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: ist-auth-redis-prod
+    volumes:
+      - redis_data_prod:/data
+    networks:
+      - ist-auth-network-prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend API
+  backend:
+    build:
+      context: ./ist-auth-system
+      dockerfile: Dockerfile
+    container_name: ist-auth-backend-prod
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ist_auth_db}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-ist_auth_user}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-ist_auth_password}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      GMAIL_USERNAME: ${GMAIL_USERNAME}
+      GMAIL_PASSWORD: ${GMAIL_PASSWORD}
+      LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID}
+      LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@ist-auth.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin123!}
+      JAVA_OPTS: "-Xmx1g -Xms512m -XX:+UseG1GC"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ist-auth-network-prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Frontend Application
+  frontend:
+    build:
+      context: ./Frontend (FE)
+      dockerfile: Dockerfile
+    container_name: ist-auth-frontend-prod
+    environment:
+      VITE_API_BASE_URL: ${FRONTEND_API_URL:-http://localhost:8080/api}
+      VITE_APP_TITLE: IST Authentication System
+      VITE_LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID}
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - ist-auth-network-prod
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: ist-auth-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - ist-auth-network-prod
+    restart: unless-stopped
+
+volumes:
+  postgres_data_prod:
+    driver: local
+  redis_data_prod:
+    driver: local
+
+networks:
+  ist-auth-network-prod:
+    driver: bridge
