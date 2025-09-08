@@ -10,7 +10,7 @@ description = "Centralized Identity Provider (IdP) for authentication and author
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
+		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
 
