@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ist-auth-postgres
+    environment:
+      POSTGRES_DB: ist_auth_db
+      POSTGRES_USER: ist_auth_user
+      POSTGRES_PASSWORD: ist_auth_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ist-auth-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ist_auth_user -d ist_auth_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: ist-auth-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ist-auth-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend API
+  backend:
+    build:
+      context: ./ist-auth-system
+      dockerfile: Dockerfile
+    container_name: ist-auth-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ist_auth_db
+      SPRING_DATASOURCE_USERNAME: ist_auth_user
+      SPRING_DATASOURCE_PASSWORD: ist_auth_password
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      GMAIL_USERNAME: manziosee3@gmail.com
+      GMAIL_PASSWORD: yjanrhmnearrzkoh
+      LINKEDIN_CLIENT_ID: your-linkedin-client-id
+      LINKEDIN_CLIENT_SECRET: your-linkedin-client-secret
+      ADMIN_EMAIL: admin@ist-auth.com
+      ADMIN_PASSWORD: Admin123!
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ist-auth-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Frontend Application
+  frontend:
+    build:
+      context: ./Frontend (FE)
+      dockerfile: Dockerfile
+    container_name: ist-auth-frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080/api
+      VITE_APP_TITLE: IST Authentication System
+      VITE_LINKEDIN_CLIENT_ID: your-linkedin-client-id
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - ist-auth-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  ist-auth-network:
+    driver: bridge
