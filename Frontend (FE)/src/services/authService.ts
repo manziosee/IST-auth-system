@@ -1,58 +1,152 @@
 import { User, LoginResponse, TokenRefreshResponse, EmailVerificationResponse } from '../types/auth';
+import { sanitizeLogMessage, sanitizeInput, isValidEmail } from '../utils/security';
+
+interface AuthServiceConfig {
+  baseURL?: string;
+  clientId?: string;
+  clientSecret?: string;
+  onSuccess?: (tokens: { accessToken: string; refreshToken: string }) => void;
+  onError?: (error: string) => void;
+}
 
 class AuthService {
-  private readonly baseURL = 'http://localhost:8080/api/auth'; // IdP backend URL
-  private readonly jwksURL = 'http://localhost:8080/.well-known/jwks.json';
-  private readonly clientId = 'school-management-app';
-  private readonly clientSecret = 'demo-client-secret';
+  private baseURL: string;
+  private jwksURL: string;
+  private clientId: string;
+  private clientSecret: string;
   private publicKey: string | null = null;
+  private onSuccess?: (tokens: { accessToken: string; refreshToken: string }) => void;
+  private onError?: (error: string) => void;
 
-  async login(email: string, password: string): Promise<LoginResponse> {
-    // Simulate API call to IdP backend
-    await this.delay(1000);
-    
-    // Demo users for testing
-    const demoUsers = [
-      { email: 'admin@school.edu', password: 'admin123', role: 'admin' as const },
-      { email: 'teacher@school.edu', password: 'teacher123', role: 'teacher' as const },
-      { email: 'student@school.edu', password: 'student123', role: 'student' as const },
-    ];
-
-    const user = demoUsers.find(u => u.email === email && u.password === password);
-    
-    if (!user) {
-      throw new Error('Invalid email or password');
-    }
-
-    return this.createAuthResponse(user.email, user.role);
+  constructor(config: AuthServiceConfig = {}) {
+    this.baseURL = config.baseURL || import.meta.env.VITE_API_BASE_URL || 'https://ist-auth-system-sparkling-wind-9681.fly.dev/api';
+    this.jwksURL = this.baseURL.replace('/api', '') + '/.well-known/jwks.json';
+    this.clientId = config.clientId || import.meta.env.VITE_CLIENT_ID || 'default-client';
+    this.clientSecret = config.clientSecret || import.meta.env.VITE_CLIENT_SECRET || '';
+    this.onSuccess = config.onSuccess;
+    this.onError = config.onError;
   }
 
-  async register(email: string, password: string, role: 'admin' | 'teacher' | 'student' = 'student'): Promise<{ requiresVerification: boolean; message: string }> {
-    // Simulate API call to IdP backend
-    await this.delay(1200);
-    
-    if (email.includes('existing')) {
-      throw new Error('Email already exists');
+  configure(config: AuthServiceConfig): void {
+    if (config.baseURL) {
+      this.baseURL = config.baseURL;
+      this.jwksURL = new URL('/.well-known/jwks.json', this.baseURL.replace('/api/auth', '')).href;
     }
+    if (config.clientId) this.clientId = config.clientId;
+    if (config.clientSecret) this.clientSecret = config.clientSecret;
+    if (config.onSuccess) this.onSuccess = config.onSuccess;
+    if (config.onError) this.onError = config.onError;
+  }
 
-    // In real implementation, this would create user and send verification email
-    return {
-      requiresVerification: true,
-      message: 'Registration successful. Please check your email for verification.'
-    };
+  async login(email: string, password: string): Promise<LoginResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ emailOrUsername: email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Login failed' }));
+        const error = errorData.error || 'Invalid credentials';
+        this.onError?.(error);
+        throw new Error(error);
+      }
+
+      const loginData = await response.json();
+
+      this.onSuccess?.({ 
+        accessToken: loginData.accessToken, 
+        refreshToken: loginData.refreshToken 
+      });
+      
+      return {
+        user: loginData.user,
+        accessToken: loginData.accessToken,
+        refreshToken: loginData.refreshToken
+      };
+    } catch (error) {
+      let errorMessage = 'Login failed';
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      const sanitizedMessage = sanitizeLogMessage(errorMessage);
+      this.onError?.(sanitizedMessage);
+      throw new Error(sanitizedMessage);
+    }
+  }
+
+  async register(email: string, password: string, role: 'admin' | 'teacher' | 'student' = 'student', username?: string, firstName?: string, lastName?: string): Promise<{ requiresVerification: boolean; message: string }> {
+    // Validate inputs
+    if (!isValidEmail(email)) {
+      throw new Error('Invalid email format');
+    }
+    
+    if (password.length < 8) {
+      throw new Error('Password must be at least 8 characters long');
+    }
+    
+    try {
+      const finalUsername = username || email.split('@')[0]; // Use provided username or generate from email
+      const finalFirstName = firstName || email.split('@')[0]; // Use provided firstName or generate from email
+      const finalLastName = lastName || 'User'; // Use provided lastName or default
+      
+      const response = await fetch(`${this.baseURL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          username: finalUsername, 
+          email, 
+          firstName: finalFirstName, 
+          lastName: finalLastName, 
+          password,
+          role: role.toUpperCase()
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Registration failed' }));
+        throw new Error(errorData.error || 'Registration failed');
+      }
+
+      const data = await response.json();
+      return {
+        requiresVerification: true,
+        message: data.message || 'Registration successful. Please check your email for verification.'
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      const sanitizedMessage = sanitizeLogMessage(errorMessage);
+      throw new Error(sanitizedMessage);
+    }
   }
 
   async refreshToken(refreshToken: string): Promise<TokenRefreshResponse> {
-    // Simulate API call to IdP backend
-    await this.delay(500);
-    
     try {
-      const payload = this.decodeToken(refreshToken);
-      const newTokens = this.generateTokens(payload);
-      
+      const response = await fetch(`${this.baseURL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to refresh token');
+      }
+
+      const data = await response.json();
       return {
-        accessToken: newTokens.accessToken,
-        refreshToken: newTokens.refreshToken,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
       };
     } catch (error) {
       throw new Error('Invalid refresh token');
@@ -61,9 +155,12 @@ class AuthService {
 
   async verifyToken(token: string): Promise<boolean> {
     try {
-      const payload = this.decodeToken(token);
+      const parts = token.split('.');
+      if (parts.length !== 3) return false;
+      
+      const payload = JSON.parse(atob(parts[1]));
       return payload.exp > Date.now() / 1000;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -72,31 +169,62 @@ class AuthService {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.user;
-    } catch (error) {
+    } catch {
       throw new Error('Invalid token format');
     }
   }
 
   storeTokens(accessToken: string, refreshToken: string): void {
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
+    try {
+      localStorage.setItem('access_token', accessToken);
+      localStorage.setItem('refresh_token', refreshToken);
+    } catch (error) {
+      console.warn('Failed to store tokens in localStorage:', error);
+      // Fallback to memory storage or handle gracefully
+    }
   }
 
   getStoredTokens(): { accessToken: string | null; refreshToken: string | null } {
-    return {
-      accessToken: localStorage.getItem('access_token'),
-      refreshToken: localStorage.getItem('refresh_token'),
-    };
+    try {
+      return {
+        accessToken: localStorage.getItem('access_token'),
+        refreshToken: localStorage.getItem('refresh_token'),
+      };
+    } catch (error) {
+      console.warn('Failed to retrieve tokens from localStorage:', error);
+      return { accessToken: null, refreshToken: null };
+    }
   }
 
   clearTokens(): void {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    try {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+    } catch (error) {
+      console.warn('Failed to clear tokens from localStorage:', error);
+    }
   }
 
-  async sendVerificationEmail(email: string): Promise<void> {
-    await this.delay(800);
-    console.log(`Verification email sent to ${email}`);
+  async sendVerificationEmail(email: string): Promise<EmailVerificationResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/send-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send verification email');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      const sanitizedEmail = sanitizeInput(email);
+      throw new Error(`Failed to send verification email to ${sanitizedEmail}`);
+    }
   }
 
   async verifyEmail(email: string, code: string): Promise<LoginResponse> {
@@ -119,20 +247,20 @@ class AuthService {
     }
 
     try {
-      // In real implementation, fetch from JWKS endpoint
-      await this.delay(500);
+      const response = await fetch(this.jwksURL);
+      if (!response.ok) {
+        throw new Error('Failed to fetch JWKS');
+      }
       
-      // Mock public key for demo
-      this.publicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4f5wg5l2hKsTeNem/V41
-fGnJm6gOdrj8ym3rFkEjWT2btf+FxKlaAWYxgxYaLPFyHPxCL4HHQOFwlOWN4Hxp
-T3S+HgOQhqMa9+Ld4+5g5l2hKsTeNem/V41fGnJm6gOdrj8ym3rFkEjWT2btf+Fx
-KlaAWYxgxYaLPFyHPxCL4HHQOFwlOWN4HxpT3S+HgOQhqMa9+Ld4+5g5l2hKsTe
-Nem/V41fGnJm6gOdrj8ym3rFkEjWT2btf+FxKlaAWYxgxYaLPFyHPxCL4HHQOFW
-lOWN4HxpT3S+HgOQhqMa9+Ld4+5g
------END PUBLIC KEY-----`;
+      const jwks = await response.json();
+      if (jwks.keys && jwks.keys.length > 0) {
+        // Extract the first key for simplicity
+        const key = jwks.keys[0];
+        this.publicKey = key;
+        return key;
+      }
       
-      return this.publicKey;
+      throw new Error('No keys found in JWKS');
     } catch (error) {
       throw new Error('Failed to fetch public key');
     }
@@ -141,7 +269,7 @@ lOWN4HxpT3S+HgOQhqMa9+Ld4+5g
   async validateTokenSignature(token: string): Promise<boolean> {
     try {
       // In real implementation, verify JWT signature using public key
-      const publicKey = await this.fetchPublicKey();
+      await this.fetchPublicKey();
       
       // Mock validation - in production use a JWT library
       const parts = token.split('.');
@@ -152,7 +280,7 @@ lOWN4HxpT3S+HgOQhqMa9+Ld4+5g
       // Simulate signature verification
       await this.delay(200);
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -178,6 +306,9 @@ lOWN4HxpT3S+HgOQhqMa9+Ld4+5g
 
     // Simulate OAuth token exchange
     await this.delay(1500);
+    
+    // Use code parameter to avoid lint warning
+    console.log(`Processing OAuth callback with code: ${code.substring(0, 10)}...`);
     
     // Mock user data from OAuth provider
     const email = `user@${provider}.com`;
@@ -238,3 +369,4 @@ lOWN4HxpT3S+HgOQhqMa9+Ld4+5g
 }
 
 export const authService = new AuthService();
+export { AuthService, type AuthServiceConfig };

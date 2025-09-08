@@ -22,8 +22,8 @@ import java.util.Set;
  * Year: 2025
  */
 @RestController
-@RequestMapping("/api/oauth/clients")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
+@RequestMapping("/oauth/clients")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173", "https://ist-auth-system.vercel.app"})
 public class OAuthClientController {
     
     private static final Logger logger = LoggerFactory.getLogger(OAuthClientController.class);

@@ -8,6 +8,9 @@ import { Select } from '../ui/Select';
 export function RegisterForm() {
   const { register, state } = useAuth();
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'admin' | 'teacher' | 'student'>('student');
@@ -17,10 +20,17 @@ export function RegisterForm() {
     e.preventDefault();
     
     if (password !== confirmPassword) {
+      // Show error message for password mismatch
+      alert('Passwords do not match. Please check your password and try again.');
       return;
     }
 
-    await register(email, password, role);
+    try {
+      await register(email, password, role, username, firstName, lastName);
+    } catch (error) {
+      // Error is already handled by the auth context
+      console.error('Registration failed:', error);
+    }
   };
 
   const roleOptions = [
@@ -44,6 +54,51 @@ export function RegisterForm() {
             onChange={(e) => setEmail(e.target.value)}
             className="pl-12 pr-4 py-4 border-2 border-violet-200 rounded-xl focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition-all duration-200 bg-gradient-to-r from-white to-violet-50"
             placeholder="Enter your email"
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label htmlFor="username" className="block text-sm font-semibold text-slate-700 mb-3">
+            Username
+          </label>
+          <Input
+            id="username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="py-4 border-2 border-violet-200 rounded-xl focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition-all duration-200"
+            placeholder="Username"
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="firstName" className="block text-sm font-semibold text-slate-700 mb-3">
+            First Name
+          </label>
+          <Input
+            id="firstName"
+            type="text"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="py-4 border-2 border-violet-200 rounded-xl focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition-all duration-200"
+            placeholder="First Name"
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="lastName" className="block text-sm font-semibold text-slate-700 mb-3">
+            Last Name
+          </label>
+          <Input
+            id="lastName"
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="py-4 border-2 border-violet-200 rounded-xl focus:ring-4 focus:ring-violet-100 focus:border-violet-400 transition-all duration-200"
+            placeholder="Last Name"
             required
           />
         </div>

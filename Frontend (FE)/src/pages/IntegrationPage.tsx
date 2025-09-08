@@ -6,7 +6,7 @@ import { Shield } from 'lucide-react';
 export function IntegrationPage() {
   const { state } = useAuth();
 
-  if (state.user?.role !== 'admin') {
+  if (!state.user || state.user.role !== 'admin') {
     return (
       <div className="text-center py-12">
         <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />

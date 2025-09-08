@@ -34,8 +34,7 @@ public class EmailVerificationService {
     @Autowired
     private UserService userService;
     
-    @Autowired
-    private JavaMailSender mailSender;
+
     
     @Value("${app.email.verification.expiration-hours:24}")
     private int verificationExpirationHours;
@@ -66,25 +65,29 @@ public class EmailVerificationService {
         return savedToken;
     }
     
+    @Autowired
+    private GmailEmailService gmailEmailService;
+    
     public void sendVerificationEmail(User user) {
         logger.info("Sending verification email to: {}", user.getEmail());
         
         EmailVerificationToken token = generateVerificationToken(user);
-        String verificationUrl = frontendUrl + "/verify-email?token=" + token.getToken();
         
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
-            message.setTo(user.getEmail());
-            message.setSubject("IST Auth System - Email Verification");
-            message.setText(buildVerificationEmailContent(user, verificationUrl));
+            boolean sent = gmailEmailService.sendVerificationEmail(
+                user.getEmail(), 
+                token.getToken(), 
+                "https://ist-auth-system-sparkling-wind-9681.fly.dev/api"
+            );
             
-            mailSender.send(message);
-            logger.info("Verification email sent successfully to: {}", user.getEmail());
+            if (sent) {
+                logger.info("Verification email sent successfully to: {}", user.getEmail());
+            } else {
+                logger.error("Email service failed for user: {} - but user can still verify manually", user.getEmail());
+            }
             
         } catch (Exception e) {
-            logger.error("Failed to send verification email to: {}", user.getEmail(), e);
-            throw new RuntimeException("Failed to send verification email", e);
+            logger.error("Failed to send verification email to: {} - but user can still verify manually", user.getEmail(), e);
         }
     }
     

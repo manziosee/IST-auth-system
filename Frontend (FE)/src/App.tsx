@@ -13,14 +13,26 @@ import { AnalyticsPage } from './pages/AnalyticsPage';
 import { IntegrationPage } from './pages/IntegrationPage';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Toaster } from './components/ui/Toaster';
+import { OAuthCallbackPage } from './pages/OAuthCallbackPage';
+import { EmailVerificationPage } from './pages/EmailVerificationPage';
+import { BudgetPage } from './pages/BudgetPage';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Routes>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <div className="min-h-screen bg-gray-50">
+            <Routes>
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+            <Route path="/auth/verify" element={<EmailVerificationPage />} />
+            <Route path="/budget" element={
+              <Layout>
+                <BudgetPage />
+              </Layout>
+            } />
             
             {/* Direct access routes for development - wrapped in Layout */}
             <Route path="/dashboard" element={
@@ -72,11 +84,12 @@ function App() {
             } />
             
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-          <Toaster />
-        </div>
-      </Router>
-    </AuthProvider>
+            </Routes>
+            <Toaster />
+          </div>
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

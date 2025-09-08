@@ -37,6 +37,8 @@ public class AuthenticationService {
     @Autowired
     private EmailVerificationService emailVerificationService;
     
+
+    
     public Map<String, Object> authenticate(String emailOrUsername, String password) {
         logger.info("Authenticating user: {}", emailOrUsername);
         
@@ -73,7 +75,8 @@ public class AuthenticationService {
             throw new BadCredentialsException("Email not verified. Please check your email for verification link.");
         }
         
-        // Update last login
+        // Reset failed login attempts and update last login
+        userService.resetFailedLoginAttempts(user);
         userService.updateLastLogin(user);
         
         // Generate tokens
@@ -91,11 +94,11 @@ public class AuthenticationService {
         return response;
     }
     
-    public Map<String, Object> register(String username, String email, String firstName, String lastName, String password) {
+    public Map<String, Object> register(String username, String email, String firstName, String lastName, String password, String role) {
         logger.info("Registering new user: {}", email);
         
         try {
-            User user = userService.createUser(username, email, firstName, lastName, password);
+            User user = userService.createUser(username, email, firstName, lastName, password, role);
             
             // Send verification email
             emailVerificationService.sendVerificationEmail(user);
@@ -116,11 +119,6 @@ public class AuthenticationService {
     
     public Map<String, Object> refreshToken(String refreshTokenValue) {
         logger.debug("Refreshing access token");
-        
-        if (!refreshTokenService.isValidToken(refreshTokenValue)) {
-            logger.warn("Invalid refresh token provided");
-            throw new BadCredentialsException("Invalid refresh token");
-        }
         
         Optional<RefreshToken> tokenOpt = refreshTokenService.findByToken(refreshTokenValue);
         if (tokenOpt.isEmpty()) {
@@ -220,7 +218,14 @@ public class AuthenticationService {
             throw new BadCredentialsException("Invalid token claims");
         }
         
-        Optional<User> userOpt = userService.findById(Long.parseLong(userId));
+        Long userIdLong;
+        try {
+            userIdLong = Long.parseLong(userId);
+        } catch (NumberFormatException e) {
+            throw new BadCredentialsException("Invalid user ID format");
+        }
+        
+        Optional<User> userOpt = userService.findById(userIdLong);
         if (userOpt.isEmpty()) {
             throw new UsernameNotFoundException("User not found");
         }
@@ -236,7 +241,7 @@ public class AuthenticationService {
         userResponse.put("firstName", user.getFirstName());
         userResponse.put("lastName", user.getLastName());
         userResponse.put("emailVerified", user.getEmailVerified());
-        userResponse.put("authProvider", user.getAuthProvider().toString());
+        userResponse.put("authProvider", user.getAuthProvider() != null ? user.getAuthProvider().toString() : "UNKNOWN");
         userResponse.put("roles", user.getRoles().stream()
                 .map(role -> role.getName())
                 .toList());

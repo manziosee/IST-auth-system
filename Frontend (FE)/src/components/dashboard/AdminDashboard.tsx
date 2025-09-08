@@ -1,28 +1,69 @@
+import { useState, useEffect } from 'react';
 import { Users, DollarSign, School, Calendar, Building2, UserCheck, Shield, Database, Settings, AlertTriangle } from 'lucide-react';
 import { StatsCard } from '../ui/StatsCard';
 import { Card } from '../ui/Card';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { budgetService } from '../../services/budgetService';
 
 export function AdminDashboard() {
-  const stats = [
-    { title: 'Total Users', value: '2,847', change: '+15% this month', icon: Users, color: 'blue' as const },
-    { title: 'System Health', value: '99.8%', change: 'Uptime', icon: Database, color: 'green' as const },
-    { title: 'Monthly Budget', value: '$127,450', change: '+3% allocated', icon: DollarSign, color: 'purple' as const },
-    { title: 'Security Alerts', value: '2', change: 'Active issues', icon: Shield, color: 'red' as const },
-  ];
+  const [stats, setStats] = useState([]);
+  const [budgetCategories, setBudgetCategories] = useState([]);
+  const [budgetSummary, setBudgetSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const systemActivities = [
-    { action: 'Database backup completed', user: 'System', time: '5 minutes ago', type: 'system' },
-    { action: 'Security scan initiated', user: 'Admin Bot', time: '1 hour ago', type: 'security' },
-    { action: 'Budget report generated', user: 'Finance Module', time: '2 hours ago', type: 'finance' },
-    { action: 'User permissions updated', user: 'IT Admin', time: '3 hours ago', type: 'admin' },
-  ];
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch budget data from API
+        const [categories, summary] = await Promise.all([
+          budgetService.getCategories(),
+          budgetService.getBudgetSummary()
+        ]);
+        
+        setBudgetCategories(categories);
+        setBudgetSummary(summary);
+        
+        // Build stats from API data
+        const totalBudget = categories.reduce((sum, cat) => sum + cat.allocatedAmount, 0);
+        const totalSpent = categories.reduce((sum, cat) => sum + cat.spentAmount, 0);
+        const utilizationRate = totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(1) : 0;
+        
+        setStats([
+          { title: 'Budget Categories', value: categories.length.toString(), change: 'Active categories', icon: School, color: 'blue' as const },
+          { title: 'Total Budget', value: `$${totalBudget.toLocaleString()}`, change: 'Allocated', icon: DollarSign, color: 'green' as const },
+          { title: 'Budget Utilization', value: `${utilizationRate}%`, change: 'Current usage', icon: Database, color: 'purple' as const },
+          { title: 'Over Budget', value: categories.filter(cat => cat.isOverBudget).length.toString(), change: 'Categories', icon: AlertTriangle, color: 'red' as const },
+        ]);
+        
+      } catch (err) {
+        setError('Failed to load dashboard data');
+        console.error('Dashboard data fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const departmentBudgets = [
-    { department: 'Mathematics', allocated: '$45,000', spent: '$38,200', percentage: 85 },
-    { department: 'Science', allocated: '$52,000', spent: '$41,600', percentage: 80 },
-    { department: 'Technology', allocated: '$38,000', spent: '$35,150', percentage: 92 },
-    { department: 'Arts', allocated: '$28,000', spent: '$22,400', percentage: 80 },
-  ];
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p className="text-red-600">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -44,48 +85,79 @@ export function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <StatsCard key={index} {...stat} />
+        {stats.map((stat) => (
+          <StatsCard key={stat.title} {...stat} />
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="System Activities" className="p-6">
+        <Card title="Recent Activities" className="p-6">
           <div className="space-y-4">
-            {systemActivities.map((activity, index) => (
-              <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                <div className="flex-shrink-0">
-                  {activity.type === 'system' && <Database className="h-5 w-5 text-blue-600" />}
-                  {activity.type === 'security' && <Shield className="h-5 w-5 text-red-600" />}
-                  {activity.type === 'finance' && <DollarSign className="h-5 w-5 text-green-600" />}
-                  {activity.type === 'admin' && <Settings className="h-5 w-5 text-purple-600" />}
+            {budgetSummary && (
+              <div className="space-y-3">
+                <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
+                  <Database className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">Budget system initialized</p>
+                    <p className="text-sm text-gray-500">System • Active</p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                  <p className="text-sm text-gray-500">{activity.user} • {activity.time}</p>
+                <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
+                  <DollarSign className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">
+                      {budgetCategories.length} budget categories active
+                    </p>
+                    <p className="text-sm text-gray-500">Budget Module • Live data</p>
+                  </div>
                 </div>
+                {budgetCategories.some(cat => cat.isOverBudget) && (
+                  <div className="flex items-start space-x-3 p-3 bg-red-50 rounded-lg">
+                    <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">
+                        {budgetCategories.filter(cat => cat.isOverBudget).length} categories over budget
+                      </p>
+                      <p className="text-sm text-gray-500">Alert System • Requires attention</p>
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+            )}
+            {!budgetSummary && (
+              <p className="text-gray-500 text-center py-4">Loading activities...</p>
+            )}
           </div>
         </Card>
 
-        <Card title="Department Budgets" className="p-6">
+        <Card title="Budget Categories" className="p-6">
           <div className="space-y-4">
-            {departmentBudgets.map((budget, index) => (
-              <div key={index} className="space-y-2">
+            {budgetCategories.slice(0, 5).map((category) => (
+              <div key={category.id} className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-900">{budget.department}</span>
-                  <span className="text-sm text-gray-600">{budget.spent} / {budget.allocated}</span>
+                  <span className="text-sm font-medium text-gray-900">{category.name}</span>
+                  <span className="text-sm text-gray-600">
+                    ${category.spentAmount.toLocaleString()} / ${category.allocatedAmount.toLocaleString()}
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
-                    className={`h-2 rounded-full ${budget.percentage > 90 ? 'bg-red-500' : budget.percentage > 75 ? 'bg-yellow-500' : 'bg-green-500'}`}
-                    style={{width: `${budget.percentage}%`}}
+                    className={`h-2 rounded-full ${
+                      category.utilizationPercentage > 90 ? 'bg-red-500' : 
+                      category.utilizationPercentage > 75 ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}
+                    style={{width: `${Math.min(category.utilizationPercentage, 100)}%`}}
                   />
                 </div>
-                <div className="text-xs text-gray-500">{budget.percentage}% utilized</div>
+                <div className="text-xs text-gray-500">
+                  {category.utilizationPercentage.toFixed(1)}% utilized
+                  {category.isOverBudget && <span className="text-red-500 ml-2">Over Budget!</span>}
+                </div>
               </div>
             ))}
+            {budgetCategories.length === 0 && (
+              <p className="text-gray-500 text-center py-4">No budget categories found</p>
+            )}
           </div>
         </Card>
       </div>
