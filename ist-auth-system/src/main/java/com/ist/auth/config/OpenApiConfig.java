@@ -72,7 +72,7 @@ public class OpenApiConfig {
                                 .url("http://localhost:" + serverPort)
                                 .description("Local Development Server"),
                         new Server()
-                                .url("https://ist-auth-api.herokuapp.com")
+                                .url("https://ist-auth-system-sparkling-wind-9681.fly.dev")
                                 .description("Production Server")))
                 .addSecurityItem(new SecurityRequirement()
                         .addList("Bearer Authentication"))
