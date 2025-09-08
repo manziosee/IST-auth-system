@@ -13,6 +13,8 @@ primary_region = 'iad'
   PORT = '8080'
   SPRING_PROFILES_ACTIVE = 'prod'
   SERVER_ADDRESS = '0.0.0.0'
+  GMAIL_USERNAME = 'manziosee3@gmail.com'
+  GMAIL_PASSWORD = 'yjan rhmn eorr zkoh'
 
 [http_service]
   internal_port = 8080

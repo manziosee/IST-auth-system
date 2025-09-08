@@ -37,6 +37,8 @@ public class AuthenticationService {
     @Autowired
     private EmailVerificationService emailVerificationService;
     
+
+    
     public Map<String, Object> authenticate(String emailOrUsername, String password) {
         logger.info("Authenticating user: {}", emailOrUsername);
         
@@ -92,11 +94,11 @@ public class AuthenticationService {
         return response;
     }
     
-    public Map<String, Object> register(String username, String email, String firstName, String lastName, String password) {
+    public Map<String, Object> register(String username, String email, String firstName, String lastName, String password, String role) {
         logger.info("Registering new user: {}", email);
         
         try {
-            User user = userService.createUser(username, email, firstName, lastName, password);
+            User user = userService.createUser(username, email, firstName, lastName, password, role);
             
             // Send verification email
             emailVerificationService.sendVerificationEmail(user);

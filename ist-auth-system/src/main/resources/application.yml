@@ -30,8 +30,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    username: ${GMAIL_USERNAME:manziosee3@gmail.com}
+    password: ${GMAIL_PASSWORD:yjanrhmnearrzkoh}
     properties:
       mail:
         smtp:
@@ -103,10 +103,14 @@ app:
     verification:
       expiration: 3600000 # 1 hour
       base-url: ${BASE_URL:https://ist-auth-system-sparkling-wind-9681.fly.dev/api}
+    from: ${EMAIL_FROM:noreply@ist-auth.com}
+
+resend:
+  api-key: ${RESEND_API_KEY:}
       
   oauth:
-    success-redirect: ${FRONTEND_URL:https://ist-auth-system.vercel.app}/auth/success
-    failure-redirect: ${FRONTEND_URL:https://ist-auth-system.vercel.app}/auth/error
+    success-redirect: ${FRONTEND_URL:https://ist-auth-system.vercel.app}/login?oauth=success
+    failure-redirect: ${FRONTEND_URL:https://ist-auth-system.vercel.app}/login?oauth=error
 
 ---
 spring:
@@ -125,6 +129,10 @@ spring:
       ddl-auto: create-drop
     show-sql: false
     database-platform: org.hibernate.dialect.H2Dialect
+    properties:
+      hibernate:
+        hbm2ddl:
+          auto: create-drop
     
   h2:
     console:
@@ -140,6 +148,8 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
+  server:
+    url: https://ist-auth-system-sparkling-wind-9681.fly.dev
 
 logging:
   level:
