@@ -16,12 +16,8 @@ public class OAuth2Controller {
     
     @GetMapping("/login/linkedin")
     public RedirectView linkedinLogin() {
-        // For demo purposes, redirect to frontend with mock success
-        // In production, this would integrate with LinkedIn OAuth2
-        String frontendUrl = "https://ist-auth-system.vercel.app/oauth/callback";
-        String mockTokens = "?access_token=mock_linkedin_token&refresh_token=mock_refresh_token&provider=linkedin";
-        
-        return new RedirectView(frontendUrl + mockTokens);
+        // Mock LinkedIn OAuth for demo - redirect to frontend with success
+        return new RedirectView("https://ist-auth-system.vercel.app/oauth/callback?provider=linkedin&success=true");
     }
     
     @GetMapping("/success")
