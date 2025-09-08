@@ -1,0 +1,21 @@
+# Working Dockerfile for Fly.io
+FROM eclipse-temurin:17-jdk
+
+WORKDIR /app
+
+# Copy gradle wrapper and build files
+COPY gradlew .
+COPY gradle gradle
+COPY build.gradle.kts .
+COPY settings.gradle.kts .
+
+# Copy source code
+COPY src src
+
+# Make gradlew executable and build
+RUN chmod +x ./gradlew
+RUN ./gradlew build -x test --no-daemon
+
+EXPOSE 8080
+
+CMD ["java", "-jar", "build/libs/ist-auth-system-0.0.1-SNAPSHOT.jar"]

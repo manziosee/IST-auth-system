@@ -36,8 +36,8 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
     
-    public User createUser(String username, String email, String firstName, String lastName, String password) {
-        logger.info("Creating new user with email: {}", email);
+    public User createUser(String username, String email, String firstName, String lastName, String password, String roleName) {
+        logger.info("Creating new user with email: {} and role: {}", email, roleName);
         
         if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("User with email " + email + " already exists");
@@ -49,13 +49,15 @@ public class UserService {
         
         User user = new User(username, email, firstName, lastName);
         user.setPasswordHash(passwordEncoder.encode(password));
-        user.setEmailVerified(false);
+        user.setEmailVerified(false); // Must verify email to login
         user.setAccountEnabled(true);
         
-        // Assign default role
-        Role defaultRole = roleRepository.findByName("STUDENT")
-                .orElseThrow(() -> new RuntimeException("Default role STUDENT not found"));
-        user.addRole(defaultRole);
+        // Assign specified role or default to STUDENT
+        String roleToAssign = (roleName != null && !roleName.trim().isEmpty()) ? roleName.toUpperCase() : "STUDENT";
+        Role userRole = roleRepository.findByName(roleToAssign)
+                .orElseGet(() -> roleRepository.findByName("STUDENT")
+                    .orElseThrow(() -> new RuntimeException("Default role STUDENT not found")));
+        user.addRole(userRole);
         
         User savedUser = userRepository.save(user);
         logger.info("User created successfully with ID: {}", savedUser.getId());
@@ -129,6 +131,10 @@ public class UserService {
     
     public void updateLastLogin(User user) {
         user.setLastLogin(LocalDateTime.now());
+        userRepository.save(user);
+    }
+    
+    public void resetFailedLoginAttempts(User user) {
         user.resetFailedLoginAttempts();
         userRepository.save(user);
     }

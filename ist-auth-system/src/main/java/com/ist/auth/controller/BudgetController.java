@@ -32,8 +32,8 @@ import java.util.Map;
  * Year: 2025
  */
 @RestController
-@RequestMapping("/api/budget")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
+@RequestMapping("/budget")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173", "https://ist-auth-system.vercel.app"})
 public class BudgetController {
     
     private static final Logger logger = LoggerFactory.getLogger(BudgetController.class);
