@@ -22,36 +22,30 @@ SOFTWARE.
 
 ---
 
-## Additional Terms for Educational Use
+IST Authentication System
+Educational Identity Provider with Budget Management
 
-This software is specifically designed for educational institutions and academic purposes. The IST Authentication System includes features tailored for:
+This project was developed as part of an academic assessment to demonstrate
+modern authentication practices, secure coding principles, and comprehensive
+full-stack development for educational technology solutions.
 
-- Student information management
-- Educational budget tracking and management
-- Multi-departmental access control
-- Academic year organization
-- Educational resource allocation
+Developer: Manzi Niyongira Osee
+Year: 2025
+Institution: Institut Supérieur de Technologie (IST)
+Purpose: Academic Assessment - Identity Provider Development
 
-### Educational Institution License Grant
+The system includes:
+- Centralized authentication and authorization
+- Educational budget management and expense tracking
+- Role-based access control for educational institutions
+- Modern security practices and JWT token management
+- OAuth integration and email verification systems
 
-Educational institutions are granted additional permissions to:
-1. Use this software for internal authentication and authorization systems
-2. Modify the budget management features to suit institutional needs
-3. Integrate with existing educational management systems
-4. Deploy on institutional infrastructure
+Built with modern technologies:
+- Backend: Spring Boot 3.5.6 with Java 21
+- Frontend: React 18.3.1 with TypeScript
+- Database: H2 (in-memory for production deployment)
+- Deployment: Fly.io (backend) and Vercel (frontend)
 
-### Commercial Use
-
-For commercial use outside of educational institutions, please contact the author for appropriate licensing terms.
-
-### Attribution
-
-When using this software in academic or commercial environments, please include appropriate attribution:
-
-"Authentication services powered by IST Authentication System by Manzi Niyongira Osee"
-
-### Support and Warranty
-
-This software is provided as-is for educational and assessment purposes. While comprehensive testing has been performed, users should conduct their own security audits before production deployment.
-
-For educational institutions requiring support or customization, please contact the author through appropriate academic channels.
+This software is provided for educational and demonstration purposes.
+Commercial use is permitted under the MIT License terms above.
