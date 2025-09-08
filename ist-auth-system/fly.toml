@@ -7,11 +7,12 @@ app = 'ist-auth-system-sparkling-wind-9681'
 primary_region = 'iad'
 
 [build]
-  dockerfile = 'Dockerfile.final'
+  dockerfile = 'Dockerfile'
 
 [env]
   PORT = '8080'
   SPRING_PROFILES_ACTIVE = 'prod'
+  SERVER_ADDRESS = '0.0.0.0'
 
 [http_service]
   internal_port = 8080
