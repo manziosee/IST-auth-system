@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IST Auth Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>IST Authentication System - Integration Test</h1>
+    
+    <div class="test-section">
+        <h3>Backend Health Check</h3>
+        <button onclick="testHealth()">Test Health Endpoint</button>
+        <div id="health-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>JWKS Endpoint Test</h3>
+        <button onclick="testJWKS()">Test JWKS Endpoint</button>
+        <div id="jwks-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>User Registration Test</h3>
+        <input type="email" id="reg-email" placeholder="Email" value="test@example.com">
+        <input type="text" id="reg-username" placeholder="Username" value="testuser">
+        <input type="text" id="reg-firstName" placeholder="First Name" value="Test">
+        <input type="text" id="reg-lastName" placeholder="Last Name" value="User">
+        <input type="password" id="reg-password" placeholder="Password" value="TestPass123!">
+        <button onclick="testRegister()">Test Registration</button>
+        <div id="register-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>User Login Test</h3>
+        <input type="email" id="login-email" placeholder="Email" value="test@example.com">
+        <input type="password" id="login-password" placeholder="Password" value="TestPass123!">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="login-result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://ist-auth-system-sparkling-wind-9681.fly.dev/api';
+
+        async function testHealth() {
+            const result = document.getElementById('health-result');
+            try {
+                const response = await fetch(`${API_BASE}/actuator/health`);
+                const data = await response.json();
+                result.innerHTML = `<div class="success"><strong>✓ Health Check:</strong><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+            } catch (error) {
+                result.innerHTML = `<div class="error"><strong>✗ Health Check Failed:</strong> ${error.message}</div>`;
+            }
+        }
+
+        async function testJWKS() {
+            const result = document.getElementById('jwks-result');
+            try {
+                const response = await fetch('https://ist-auth-system-sparkling-wind-9681.fly.dev/.well-known/jwks.json');
+                const data = await response.json();
+                result.innerHTML = `<div class="success"><strong>✓ JWKS Endpoint:</strong><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+            } catch (error) {
+                result.innerHTML = `<div class="error"><strong>✗ JWKS Failed:</strong> ${error.message}</div>`;
+            }
+        }
+
+        async function testRegister() {
+            const result = document.getElementById('register-result');
+            const email = document.getElementById('reg-email').value;
+            const username = document.getElementById('reg-username').value;
+            const firstName = document.getElementById('reg-firstName').value;
+            const lastName = document.getElementById('reg-lastName').value;
+            const password = document.getElementById('reg-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, firstName, lastName, password, role: 'STUDENT' })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = `<div class="success"><strong>✓ Registration Success:</strong><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                } else {
+                    result.innerHTML = `<div class="error"><strong>✗ Registration Failed:</strong><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error"><strong>✗ Registration Error:</strong> ${error.message}</div>`;
+            }
+        }
+
+        async function testLogin() {
+            const result = document.getElementById('login-result');
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ emailOrUsername: email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = `<div class="success"><strong>✓ Login Success:</strong><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                } else {
+                    result.innerHTML = `<div class="error"><strong>✗ Login Failed:</strong><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error"><strong>✗ Login Error:</strong> ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

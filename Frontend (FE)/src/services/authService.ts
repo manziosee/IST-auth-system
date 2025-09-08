@@ -19,8 +19,8 @@ class AuthService {
   private onError?: (error: string) => void;
 
   constructor(config: AuthServiceConfig = {}) {
-    this.baseURL = config.baseURL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/auth';
-    this.jwksURL = new URL('/.well-known/jwks.json', this.baseURL.replace('/api/auth', '')).href;
+    this.baseURL = config.baseURL || import.meta.env.VITE_API_BASE_URL || 'https://ist-auth-system-sparkling-wind-9681.fly.dev/api';
+    this.jwksURL = this.baseURL.replace('/api', '') + '/.well-known/jwks.json';
     this.clientId = config.clientId || import.meta.env.VITE_CLIENT_ID || 'default-client';
     this.clientSecret = config.clientSecret || import.meta.env.VITE_CLIENT_SECRET || '';
     this.onSuccess = config.onSuccess;
@@ -40,8 +40,7 @@ class AuthService {
 
   async login(email: string, password: string): Promise<LoginResponse> {
     try {
-      // Make actual API call to backend
-      const response = await fetch(`${this.baseURL}/login`, {
+      const response = await fetch(`${this.baseURL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -69,14 +68,21 @@ class AuthService {
         refreshToken: loginData.refreshToken
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      let errorMessage = 'Login failed';
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       const sanitizedMessage = sanitizeLogMessage(errorMessage);
       this.onError?.(sanitizedMessage);
       throw new Error(sanitizedMessage);
     }
   }
 
-  async register(email: string, password: string, role: 'admin' | 'teacher' | 'student' = 'student'): Promise<{ requiresVerification: boolean; message: string }> {
+  async register(email: string, password: string, role: 'admin' | 'teacher' | 'student' = 'student', username?: string, firstName?: string, lastName?: string): Promise<{ requiresVerification: boolean; message: string }> {
     // Validate inputs
     if (!isValidEmail(email)) {
       throw new Error('Invalid email format');
@@ -87,20 +93,22 @@ class AuthService {
     }
     
     try {
-      const username = email.split('@')[0]; // Generate username from email
-      const [firstName, lastName] = [email.split('@')[0], 'User']; // Default names
+      const finalUsername = username || email.split('@')[0]; // Use provided username or generate from email
+      const finalFirstName = firstName || email.split('@')[0]; // Use provided firstName or generate from email
+      const finalLastName = lastName || 'User'; // Use provided lastName or default
       
-      const response = await fetch(`${this.baseURL}/register`, {
+      const response = await fetch(`${this.baseURL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          username, 
+          username: finalUsername, 
           email, 
-          firstName, 
-          lastName, 
-          password 
+          firstName: finalFirstName, 
+          lastName: finalLastName, 
+          password,
+          role: role.toUpperCase()
         }),
       });
 
@@ -123,7 +131,7 @@ class AuthService {
 
   async refreshToken(refreshToken: string): Promise<TokenRefreshResponse> {
     try {
-      const response = await fetch(`${this.baseURL}/refresh`, {
+      const response = await fetch(`${this.baseURL}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

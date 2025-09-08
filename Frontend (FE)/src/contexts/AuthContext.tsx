@@ -5,7 +5,7 @@ import { User, AuthState } from '../types/auth';
 interface AuthContextType {
   state: AuthState;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, role?: 'admin' | 'teacher' | 'student') => Promise<void>;
+  register: (email: string, password: string, role?: 'admin' | 'teacher' | 'student', username?: string, firstName?: string, lastName?: string) => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<void>;
 }
@@ -102,24 +102,29 @@ export function AuthProvider({
               },
             });
           } else {
-            // Try to refresh token inline to avoid dependency issues
+            // Try to refresh token
             try {
               const response = await authService.refreshToken(tokens.refreshToken);
+              const user = authService.decodeToken(response.accessToken);
               dispatch({
-                type: 'REFRESH_TOKEN',
+                type: 'LOGIN_SUCCESS',
                 payload: {
+                  user,
                   accessToken: response.accessToken,
                   refreshToken: response.refreshToken,
                 },
               });
               authService.storeTokens(response.accessToken, response.refreshToken);
-            } catch {
+            } catch (error) {
+              console.warn('Token refresh failed:', error);
               authService.clearTokens();
               dispatch({ type: 'LOGOUT' });
             }
           }
-        } catch {
+        } catch (error) {
+          console.warn('Token validation failed:', error);
           authService.clearTokens();
+          dispatch({ type: 'LOGOUT' });
         }
       }
     };
@@ -141,10 +146,10 @@ export function AuthProvider({
     }
   };
 
-  const register = async (email: string, password: string, role: 'admin' | 'teacher' | 'student' = 'student') => {
+  const register = async (email: string, password: string, role: 'admin' | 'teacher' | 'student' = 'student', username?: string, firstName?: string, lastName?: string) => {
     dispatch({ type: 'LOGIN_START' });
     try {
-      const response = await authService.register(email, password, role);
+      const response = await authService.register(email, password, role, username, firstName, lastName);
       // Register returns a different type - just show success message
       dispatch({ type: 'LOGIN_FAILURE', payload: response.message });
     } catch (error) {

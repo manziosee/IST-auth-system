@@ -16,8 +16,8 @@ export function LoginForm() {
   };
 
   const handleLinkedInLogin = () => {
-    // In real implementation, this would redirect to LinkedIn OAuth
-    alert('LinkedIn OAuth integration would be implemented in the backend IdP');
+    // Redirect to backend LinkedIn OAuth endpoint
+    window.location.href = 'https://ist-auth-system-sparkling-wind-9681.fly.dev/oauth2/login/linkedin';
   };
 
   return (

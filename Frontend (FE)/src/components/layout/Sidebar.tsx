@@ -26,6 +26,7 @@ export function Sidebar() {
 
     const roleSpecificItems = {
       admin: [
+        { to: '/budget', icon: DollarSign, label: 'Budget Management' },
         { to: '/students', icon: GraduationCap, label: 'Students' },
         { to: '/teachers', icon: UserCheck, label: 'Teachers' },
         { to: '/courses', icon: BookOpen, label: 'Courses' },
@@ -33,11 +34,13 @@ export function Sidebar() {
         { to: '/settings', icon: Settings, label: 'Settings' },
       ],
       teacher: [
+        { to: '/budget', icon: DollarSign, label: 'Budget View' },
         { to: '/courses', icon: BookOpen, label: 'My Courses' },
         { to: '/students', icon: Users, label: 'Students' },
         { to: '/analytics', icon: BarChart3, label: 'Grade Analytics' },
       ],
       student: [
+        { to: '/budget', icon: DollarSign, label: 'Budget Info' },
         { to: '/courses', icon: BookOpen, label: 'My Courses' },
         { to: '/analytics', icon: BarChart3, label: 'My Progress' },
       ],
