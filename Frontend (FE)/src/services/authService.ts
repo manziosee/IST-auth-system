@@ -207,7 +207,7 @@ class AuthService {
 
   async sendVerificationEmail(email: string): Promise<EmailVerificationResponse> {
     try {
-      const response = await fetch(`${this.baseURL}/send-verification`, {
+      const response = await fetch(`${this.baseURL}/auth/resend-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -287,12 +287,14 @@ class AuthService {
 
   async initiateOAuthLogin(provider: 'linkedin' | 'google' | 'github'): Promise<string> {
     const state = Math.random().toString(36).substring(2, 15);
-    const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
-    
     localStorage.setItem('oauth_state', state);
     
-    // Return OAuth URL that would redirect to IdP
-    return `${this.baseURL}/oauth2/authorization/${provider}?client_id=${this.clientId}&redirect_uri=${redirectUri}&state=${state}`;
+    // Return OAuth URL that matches backend endpoint
+    if (provider === 'linkedin') {
+      return `${this.baseURL.replace('/api', '')}/oauth2/login/linkedin`;
+    }
+    
+    return `${this.baseURL}/oauth2/authorization/${provider}?client_id=${this.clientId}&state=${state}`;
   }
 
   async handleOAuthCallback(provider: string, code: string, state: string): Promise<LoginResponse> {

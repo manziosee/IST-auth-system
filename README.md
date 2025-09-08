@@ -178,6 +178,20 @@ IST-auth-system/
 - **Database:** H2 in-memory (production-ready)
 - **Email Service:** Gmail SMTP integration
 
+## 🚀 Live Demo
+
+### 🌐 **Production Deployment**
+- **Frontend**: https://ist-auth-system.vercel.app
+- **Backend API**: https://ist-auth-system-sparkling-wind-9681.fly.dev/api
+- **API Documentation**: https://ist-auth-system-sparkling-wind-9681.fly.dev/swagger-ui.html
+- **JWKS Endpoint**: https://ist-auth-system-sparkling-wind-9681.fly.dev/.well-known/jwks.json
+
+### 🧪 **Test the System**
+1. Visit the frontend: https://ist-auth-system.vercel.app
+2. Register a new account (email verification required)
+3. Login and explore role-based dashboards
+4. Test LinkedIn OAuth integration
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -188,7 +202,7 @@ IST-auth-system/
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/your-username/IST-auth-system.git
 cd IST-auth-system
 ```
 
@@ -284,9 +298,14 @@ ADMIN_PASSWORD=Admin123!
 
 #### Frontend (.env)
 ```env
-VITE_API_BASE_URL=http://localhost:8080/api
+# Production Configuration
+VITE_API_BASE_URL=https://ist-auth-system-sparkling-wind-9681.fly.dev/api
 VITE_APP_TITLE=IST Authentication System
 VITE_LINKEDIN_CLIENT_ID=your-linkedin-client-id
+VITE_JWT_PUBLIC_KEY_URL=https://ist-auth-system-sparkling-wind-9681.fly.dev/.well-known/jwks.json
+
+# Local Development
+# VITE_API_BASE_URL=http://localhost:8080/api
 ```
 
 ## 📋 API Documentation
